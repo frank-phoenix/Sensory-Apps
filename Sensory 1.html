@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Phoenix College Sensory 1</title>
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    background-color: #222;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100vh;
+    margin: 0;
+  }
+  h1 {
+    color: #fff;
+    margin-bottom: 20px;
+  }
+  .buttons-container {
+    display: grid;
+    grid-template-columns: repeat(4, 150px);
+    grid-gap: 20px;
+  }
+  button {
+    font-size: 1.2em;
+    padding: 30px;
+    border: none;
+    border-radius: 15px;
+    cursor: pointer;
+    transition: all 0.2s;
+    background-color: #555;
+    color: #fff;
+  }
+  button:hover {
+    transform: scale(1.05);
+  }
+  /* Effects styles */
+  #screen {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    z-index: -1;
+    transition: all 0.5s ease;
+  }
+</style>
+</head>
+<body>
+
+<h1>Phoenix College Sensory 1</h1>
+<div class="buttons-container">
+  <button id="colorButton">Color Splash</button>
+  <button id="soundButton">Play Sound</button>
+  <button id="rainButton">Rain Effect</button>
+  <button id="fireworksButton">Fireworks</button>
+  <button id="bubblesButton">Bubbles</button>
+  <button id="waveButton">Wave Pattern</button>
+  <button id="lightButton">Color Cycle</button>
+  <button id="resetButton">Reset</button>
+</div>
+
+<div id="screen"></div>
+
+<!-- Optional: Add some sound files (using Web Audio API or embedded) -->
+<script>
+  const screen = document.getElementById('screen');
+
+  // Function to clear styles/effects
+  function resetEffects() {
+    screen.style.background = 'black';
+    screen.innerHTML = '';
+  }
+
+  // Button event handlers
+  document.getElementById('colorButton').onclick = () => {
+    // Random bright color splash
+    const colors = ['#ff4d4d', '#4dff4d', '#4d4dff', '#ffff4d', '#ff4dff', '#4dffff'];
+    const color = colors[Math.floor(Math.random() * colors.length)];
+    screen.style.backgroundColor = color;
+    screen.innerHTML = '';
+  };
+
+  document.getElementById('soundButton').onclick = () => {
+    // Play a simple sound using Web Audio API
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const oscillator = ctx.createOscillator();
+    const gainNode = ctx.createGain();
+    oscillator.type = 'sine';
+    oscillator.frequency.setValueAtTime(440, ctx.currentTime); // A4
+    gainNode.gain.setValueAtTime(0.2, ctx.currentTime);
+    oscillator.connect(gainNode);
+    gainNode.connect(ctx.destination);
+    oscillator.start();
+    setTimeout(() => oscillator.stop(), 500);
+  };
+
+  document.getElementById('rainButton').onclick = () => {
+    // Simulate rain with animated dots
+    resetEffects();
+    const rainCount = 100;
+    for (let i=0; i<rainCount; i++) {
+      const drop = document.createElement('div');
+      drop.style.position = 'absolute';
+      drop.style.width = '2px';
+      drop.style.height = '10px';
+      drop.style.backgroundColor = 'white';
+      drop.style.left = Math.random() * 100 + 'vw';
+      drop.style.top = '-10px';
+      drop.style.opacity = Math.random();
+      drop.animate([
+        {transform: `translateY(0)`},
+        {transform: `translateY(100vh)`}
+      ], {
+        duration: 2000 + Math.random() * 3000,
+        iterations: 1
+      }).onfinish = () => {
+        drop.remove();
+      };
+      screen.appendChild(drop);
+    }
+  };
+
+  document.getElementById('fireworksButton').onclick = () => {
+    // Fireworks animation
+    resetEffects();
+    const colors = ['#ff0000', '#00ff00', '#0000ff', '#ffff00', '#ff00ff', '#00ffff'];
+    for (let i=0; i<20; i++) {
+      const firework = document.createElement('div');
+      firework.style.position = 'absolute';
+      firework.style.borderRadius = '50%';
+      firework.style.width = '10px';
+      firework.style.height = '10px';
+      firework.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+      firework.style.left = Math.random() * 90 + 'vw';
+      firework.style.top = '80vh';
+      firework.animate([
+        {transform: 'translate(0,0)', opacity:1},
+        {transform: `translate(${(Math.random()*100-50)}px, -${Math.random()*100}px)`, opacity:0}
+      ], {
+        duration: 1000 + Math.random()*500,
+        easing: 'ease-out'
+      }).onfinish = () => {
+        firework.remove();
+      };
+      screen.appendChild(firework);
+    }
+  };
+
+  document.getElementById('bubblesButton').onclick = () => {
+    // Bubble effect
+    resetEffects();
+    for (let i=0; i<50; i++) {
+      const bubble = document.createElement('div');
+      bubble.style.position = 'absolute';
+      bubble.style.borderRadius = '50%';
+      bubble.style.backgroundColor = 'rgba(255,255,255,0.7)';
+      const size = Math.random() * 20 + 10 + 'px';
+      bubble.style.width = size;
+      bubble.style.height = size;
+      bubble.style.left = Math.random() * 100 + 'vw';
+      bubble.style.bottom = '0';
+      bubble.animate([
+        {transform: 'translateY(0)', opacity:1},
+        {transform: `translateY(-100vh)`, opacity:0}
+      ], {
+        duration: 4000 + Math.random()*2000,
+        easing: 'linear'
+      }).onfinish = () => {
+        bubble.remove();
+      };
+      screen.appendChild(bubble);
+    }
+  };
+
+  document.getElementById('waveButton').onclick = () => {
+    // Wave pattern with color change
+    resetEffects();
+    let hue = 0;
+    const interval = setInterval(() => {
+      screen.style.backgroundColor = `hsl(${hue}, 70%, 50%)`;
+      hue = (hue + 10) % 360;
+    }, 200);
+    // Stop after 10 seconds
+    setTimeout(() => clearInterval(interval), 10000);
+  };
+
+  document.getElementById('lightButton').onclick = () => {
+    // Color cycle
+    resetEffects();
+    let hue = 0;
+    const interval = setInterval(() => {
+      screen.style.backgroundColor = `hsl(${hue}, 100%, 50%)`;
+      hue = (hue + 2) % 360;
+    }, 50);
+    // Stop after 10 seconds
+    setTimeout(() => clearInterval(interval), 10000);
+  };
+
+  document.getElementById('resetButton').onclick = () => {
+    resetEffects();
+  };
+
+</script>
+</body>
+</html>

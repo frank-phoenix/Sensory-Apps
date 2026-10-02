@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Phoenix College Sensory 3</title>
+<style>
+  /* Reset and base styles */
+  * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
+
+  body {
+    font-family: Arial, sans-serif;
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    background-color: #222;
+    overflow: hidden;
+  }
+
+  header {
+    text-align: center;
+    padding: 20px;
+    background: linear-gradient(45deg, #ff6f61, #ffcc70);
+    color: #fff;
+    font-size: 2em;
+    font-weight: bold;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+  }
+
+  #container {
+    flex: 1;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    grid-template-rows: repeat(2, 1fr);
+    gap: 10px;
+    padding: 10px;
+    background-color: #111;
+  }
+
+  .button {
+    font-size: 3em;
+    border: none;
+    border-radius: 20px;
+    cursor: pointer;
+    width: 100%;
+    height: 100%;
+    transition: all 0.3s ease;
+    background: linear-gradient(135deg, #6a11cb, #2575fc);
+    box-shadow: 0 8px 20px rgba(0,0,0,0.3);
+    user-select: none;
+  }
+
+  /* Fullscreen overlay for animations */
+  #overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none; /* allow clicks to pass through */
+    z-index: 9999;
+  }
+
+  /* Animations for overlay - we'll add classes dynamically */
+  .color-change {
+    animation: colorFlash 1s forwards;
+  }
+
+  @keyframes colorFlash {
+    0% { background-color: transparent; }
+    50% { background-color: rgba(255, 255, 255, 0.7); }
+    100% { background-color: transparent; }
+  }
+
+  .shape-shift {
+    animation: shapePulse 1s forwards;
+  }
+
+  @keyframes shapePulse {
+    0% { transform: scale(1); border-radius: 20px; }
+    50% { transform: scale(1.2); border-radius: 50%; }
+    100% { transform: scale(1); border-radius: 20px; }
+  }
+
+  /* Additional interesting animations can be added similarly */
+
+</style>
+</head>
+<body>
+
+<header>Phoenix College Sensory 3</header>
+
+<div id="container">
+  <!-- 8 Buttons -->
+  <button class="button" data-sound="sound1" style="background: linear-gradient(135deg, #ff7e5f, #feb47b);">1</button>
+  <button class="button" data-sound="sound2" style="background: linear-gradient(135deg, #43cea2, #185a9d);">2</button>
+  <button class="button" data-sound="sound3" style="background: linear-gradient(135deg, #f7971e, #ffd200);">3</button>
+  <button class="button" data-sound="sound4" style="background: linear-gradient(135deg, #a8edea, #fed6e3);">4</button>
+  <button class="button" data-sound="sound5" style="background: linear-gradient(135deg, #667eea, #764ba2);">5</button>
+  <button class="button" data-sound="sound6" style="background: linear-gradient(135deg, #f7971e, #ffd200);">6</button>
+  <button class="button" data-sound="sound7" style="background: linear-gradient(135deg, #f7971e, #ffd200);">7</button>
+  <button class="button" data-sound="sound8" style="background: linear-gradient(135deg, #ff6f61, #ffcc70);">8</button>
+</div>
+
+<!-- Overlay for full-screen effects -->
+<div id="overlay"></div>
+
+<script>
+  // Prepare sounds - using Web Audio API for interesting effects
+  const AudioContext = window.AudioContext || window.webkitAudioContext;
+  const audioCtx = new AudioContext();
+
+  // Function to generate different sound effects
+  function playSound(type) {
+    const oscillator = audioCtx.createOscillator();
+    const gainNode = audioCtx.createGain();
+
+    oscillator.connect(gainNode);
+    gainNode.connect(audioCtx.destination);
+
+    if (type === 'sound1') {
+      oscillator.type = 'sine';
+      oscillator.frequency.setValueAtTime(440, audioCtx.currentTime); // A4
+    } else if (type === 'sound2') {
+      oscillator.type = 'square';
+      oscillator.frequency.setValueAtTime(660, audioCtx.currentTime); // E5
+    } else if (type === 'sound3') {
+      oscillator.type = 'triangle';
+      oscillator.frequency.setValueAtTime(330, audioCtx.currentTime); // E4
+    } else if (type === 'sound4') {
+      oscillator.type = 'sawtooth';
+      oscillator.frequency.setValueAtTime(550, audioCtx.currentTime); // C#5
+    } else if (type === 'sound5') {
+      oscillator.type = 'sine';
+      oscillator.frequency.setValueAtTime(880, audioCtx.currentTime); // A5
+    } else if (type === 'sound6') {
+      oscillator.type = 'square';
+      oscillator.frequency.setValueAtTime(440, audioCtx.currentTime); // A4
+    } else if (type === 'sound7') {
+      oscillator.type = 'triangle';
+      oscillator.frequency.setValueAtTime(220, audioCtx.currentTime); // A3
+    } else if (type === 'sound8') {
+      oscillator.type = 'sawtooth';
+      oscillator.frequency.setValueAtTime(770, audioCtx.currentTime); // G#5
+    }
+
+    // Interesting modulations
+    gainNode.gain.setValueAtTime(0.3, audioCtx.currentTime);
+    oscillator.start();
+
+    // Vary duration and release for interesting sounds
+    const duration = Math.random() * 0.5 + 0.5; // 0.5 to 1s
+    gainNode.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + duration);
+    oscillator.stop(audioCtx.currentTime + duration);
+  }
+
+  // Function for full-screen animation effects
+  function triggerFullScreenEffect(button) {
+    const overlay = document.getElementById('overlay');
+
+    // Randomly select an animation effect
+    const effects = ['color-change', 'shape-shift'];
+    const effect = effects[Math.floor(Math.random() * effects.length)];
+
+    overlay.classList.remove('color-change', 'shape-shift');
+
+    // Trigger reflow to restart animation
+    void overlay.offsetWidth;
+
+    overlay.classList.add(effect);
+  }
+
+  // Event handler for buttons
+  document.querySelectorAll('.button').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const soundType = btn.getAttribute('data-sound');
+
+      // Play sound with user gesture
+      if (audioCtx.state === 'suspended') {
+        audioCtx.resume();
+      }
+
+      playSound(soundType);
+      triggerFullScreenEffect(btn);
+    });
+  });
+</script>
+</body>
+</html>

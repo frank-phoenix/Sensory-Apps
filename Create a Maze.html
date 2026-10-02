@@ -1,0 +1,623 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Accessible Maze Game</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            max-width: 800px;
+            width: 100%;
+        }
+        
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 30px;
+            font-size: 2.5rem;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-bottom: 20px;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        .control-group label {
+            font-weight: bold;
+            color: #555;
+            font-size: 14px;
+        }
+        
+        button {
+            background: linear-gradient(45deg, #4CAF50, #45a049);
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+        }
+        
+        button:active {
+            transform: translateY(0);
+        }
+        
+        .mode-button {
+            background: linear-gradient(45deg, #2196F3, #1976D2);
+        }
+        
+        .play-button {
+            background: linear-gradient(45deg, #FF9800, #F57C00);
+        }
+        
+        .reset-button {
+            background: linear-gradient(45deg, #f44336, #d32f2f);
+        }
+        
+        input[type="color"] {
+            width: 50px;
+            height: 40px;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+        }
+        
+        .game-area {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+        }
+        
+        .timer {
+            font-size: 24px;
+            font-weight: bold;
+            color: #333;
+            background: linear-gradient(45deg, #FFE082, #FFC107);
+            padding: 10px 20px;
+            border-radius: 15px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+        
+        .maze-container {
+            position: relative;
+            border: 4px solid #333;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+        
+        canvas {
+            display: block;
+            cursor: crosshair;
+        }
+        
+        .instructions {
+            text-align: center;
+            margin: 20px 0;
+            padding: 15px;
+            background: linear-gradient(45deg, #E1F5FE, #B3E5FC);
+            border-radius: 10px;
+            border-left: 5px solid #2196F3;
+        }
+        
+        .instructions h3 {
+            color: #1976D2;
+            margin-bottom: 10px;
+        }
+        
+        .instructions p {
+            color: #555;
+            font-size: 16px;
+            line-height: 1.5;
+        }
+        
+        .celebration {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.8);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        
+        .celebration-content {
+            background: white;
+            padding: 40px;
+            border-radius: 20px;
+            text-align: center;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            animation: celebrationPop 0.5s ease-out;
+        }
+        
+        @keyframes celebrationPop {
+            0% { transform: scale(0.5); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        
+        .celebration h2 {
+            color: #4CAF50;
+            font-size: 3rem;
+            margin-bottom: 20px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .celebration p {
+            font-size: 1.5rem;
+            color: #333;
+            margin-bottom: 20px;
+        }
+        
+        .confetti {
+            position: fixed;
+            width: 10px;
+            height: 10px;
+            background: #f00;
+            animation: confetti-fall 3s linear infinite;
+        }
+        
+        @keyframes confetti-fall {
+            0% {
+                transform: translateY(-100vh) rotate(0deg);
+                opacity: 1;
+            }
+            100% {
+                transform: translateY(100vh) rotate(720deg);
+                opacity: 0;
+            }
+        }
+        
+        .mode-indicator {
+            display: inline-block;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-weight: bold;
+            margin: 10px;
+        }
+        
+        .draw-mode {
+            background: linear-gradient(45deg, #E3F2FD, #BBDEFB);
+            color: #1976D2;
+            border: 2px solid #2196F3;
+        }
+        
+        .play-mode {
+            background: linear-gradient(45deg, #FFF3E0, #FFE0B2);
+            color: #F57C00;
+            border: 2px solid #FF9800;
+        }
+        
+        @media (max-width: 600px) {
+            .container {
+                padding: 20px;
+            }
+            
+            h1 {
+                font-size: 2rem;
+            }
+            
+            .controls {
+                flex-direction: column;
+                gap: 10px;
+            }
+            
+            canvas {
+                width: 100% !important;
+                height: auto !important;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎮 Accessible Maze Game 🎮</h1>
+        
+        <div class="controls">
+            <div class="control-group">
+                <label>Wall Color:</label>
+                <input type="color" id="wallColor" value="#333333">
+            </div>
+            
+            <div class="control-group">
+                <label>Character Color:</label>
+                <input type="color" id="characterColor" value="#ff4444">
+            </div>
+            
+            <button class="mode-button" onclick="toggleMode()">Switch to Play Mode</button>
+            <button class="reset-button" onclick="resetMaze()">Clear Maze</button>
+        </div>
+        
+        <div class="mode-indicator draw-mode" id="modeIndicator">
+            DRAW MODE - Click and drag to draw walls
+        </div>
+        
+        <div class="game-area">
+            <div class="timer" id="timer">Time: 00:00</div>
+            
+            <div class="maze-container">
+                <canvas id="mazeCanvas" width="600" height="400"></canvas>
+            </div>
+        </div>
+        
+        <div class="instructions">
+            <h3>How to Play:</h3>
+            <p id="instructionText">
+                <strong>Draw Mode:</strong> Click and drag to draw maze walls. Create a path from the green start (top-left) to the red finish (bottom-right).
+            </p>
+        </div>
+    </div>
+    
+    <div class="celebration" id="celebration">
+        <div class="celebration-content">
+            <h2>🎉 Congratulations! 🎉</h2>
+            <p>You completed the maze!</p>
+            <p id="completionTime">Time: 00:00</p>
+            <button onclick="closeCelebration()">Play Again</button>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('mazeCanvas');
+        const ctx = canvas.getContext('2d');
+        const timer = document.getElementById('timer');
+        const celebration = document.getElementById('celebration');
+        const modeIndicator = document.getElementById('modeIndicator');
+        const instructionText = document.getElementById('instructionText');
+        
+        let gameState = {
+            mode: 'draw', // 'draw' or 'play'
+            isDrawing: false,
+            walls: [],
+            playerPos: { x: 25, y: 25 },
+            startPos: { x: 25, y: 25 },
+            finishPos: { x: 575, y: 375 },
+            gameStarted: false,
+            startTime: null,
+            gameCompleted: false
+        };
+        
+        let wallColor = '#333333';
+        let characterColor = '#ff4444';
+        
+        // Color change handlers
+        document.getElementById('wallColor').addEventListener('change', (e) => {
+            wallColor = e.target.value;
+            drawMaze();
+        });
+        
+        document.getElementById('characterColor').addEventListener('change', (e) => {
+            characterColor = e.target.value;
+            drawMaze();
+        });
+        
+        // Mouse and touch event handlers
+        canvas.addEventListener('mousedown', startDrawing);
+        canvas.addEventListener('mousemove', draw);
+        canvas.addEventListener('mouseup', stopDrawing);
+        canvas.addEventListener('mouseleave', stopDrawing);
+        
+        // Touch events for mobile
+        canvas.addEventListener('touchstart', handleTouch, { passive: false });
+        canvas.addEventListener('touchmove', handleTouch, { passive: false });
+        canvas.addEventListener('touchend', stopDrawing);
+        
+        // Keyboard controls for accessibility
+        document.addEventListener('keydown', handleKeyPress);
+        
+        function handleTouch(e) {
+            e.preventDefault();
+            const touch = e.touches[0];
+            const rect = canvas.getBoundingClientRect();
+            const x = touch.clientX - rect.left;
+            const y = touch.clientY - rect.top;
+            
+            if (e.type === 'touchstart') {
+                startDrawing({ offsetX: x, offsetY: y });
+            } else if (e.type === 'touchmove') {
+                draw({ offsetX: x, offsetY: y });
+            }
+        }
+        
+        function startDrawing(e) {
+            if (gameState.mode === 'draw') {
+                gameState.isDrawing = true;
+                draw(e);
+            }
+        }
+        
+        function draw(e) {
+            if (!gameState.isDrawing || gameState.mode !== 'draw') return;
+            
+            const rect = canvas.getBoundingClientRect();
+            const x = e.offsetX || (e.clientX - rect.left);
+            const y = e.offsetY || (e.clientY - rect.top);
+            
+            // Add wall segment
+            gameState.walls.push({
+                x: Math.floor(x / 10) * 10,
+                y: Math.floor(y / 10) * 10,
+                width: 10,
+                height: 10
+            });
+            
+            drawMaze();
+        }
+        
+        function stopDrawing() {
+            gameState.isDrawing = false;
+        }
+        
+        function handleKeyPress(e) {
+            if (gameState.mode !== 'play' || gameState.gameCompleted) return;
+            
+            if (!gameState.gameStarted) {
+                gameState.gameStarted = true;
+                gameState.startTime = Date.now();
+                updateTimer();
+            }
+            
+            const step = 10;
+            let newX = gameState.playerPos.x;
+            let newY = gameState.playerPos.y;
+            
+            switch(e.key) {
+                case 'ArrowUp':
+                case 'w':
+                case 'W':
+                    newY -= step;
+                    break;
+                case 'ArrowDown':
+                case 's':
+                case 'S':
+                    newY += step;
+                    break;
+                case 'ArrowLeft':
+                case 'a':
+                case 'A':
+                    newX -= step;
+                    break;
+                case 'ArrowRight':
+                case 'd':
+                case 'D':
+                    newX += step;
+                    break;
+                default:
+                    return;
+            }
+            
+            e.preventDefault();
+            
+            // Check boundaries
+            if (newX < 0 || newX >= canvas.width || newY < 0 || newY >= canvas.height) {
+                return;
+            }
+            
+            // Check wall collision
+            if (!checkCollision(newX, newY)) {
+                gameState.playerPos.x = newX;
+                gameState.playerPos.y = newY;
+                
+                // Check if reached finish
+                if (Math.abs(gameState.playerPos.x - gameState.finishPos.x) < 20 && 
+                    Math.abs(gameState.playerPos.y - gameState.finishPos.y) < 20) {
+                    completeGame();
+                }
+                
+                drawMaze();
+            }
+        }
+        
+        function checkCollision(x, y) {
+            for (let wall of gameState.walls) {
+                if (x < wall.x + wall.width &&
+                    x + 20 > wall.x &&
+                    y < wall.y + wall.height &&
+                    y + 20 > wall.y) {
+                    return true;
+                }
+            }
+            return false;
+        }
+        
+        function toggleMode() {
+            if (gameState.mode === 'draw') {
+                gameState.mode = 'play';
+                gameState.playerPos = { ...gameState.startPos };
+                gameState.gameStarted = false;
+                gameState.gameCompleted = false;
+                document.querySelector('.mode-button').textContent = 'Switch to Draw Mode';
+                modeIndicator.textContent = 'PLAY MODE - Use arrow keys or WASD to move';
+                modeIndicator.className = 'mode-indicator play-mode';
+                instructionText.innerHTML = '<strong>Play Mode:</strong> Use arrow keys or WASD to move your character from start (green) to finish (red). Timer starts when you move!';
+                canvas.style.cursor = 'default';
+                canvas.focus();
+            } else {
+                gameState.mode = 'draw';
+                document.querySelector('.mode-button').textContent = 'Switch to Play Mode';
+                modeIndicator.textContent = 'DRAW MODE - Click and drag to draw walls';
+                modeIndicator.className = 'mode-indicator draw-mode';
+                instructionText.innerHTML = '<strong>Draw Mode:</strong> Click and drag to draw maze walls. Create a path from the green start (top-left) to the red finish (bottom-right).';
+                canvas.style.cursor = 'crosshair';
+                resetTimer();
+            }
+            drawMaze();
+        }
+        
+        function resetMaze() {
+            gameState.walls = [];
+            gameState.playerPos = { ...gameState.startPos };
+            gameState.gameStarted = false;
+            gameState.gameCompleted = false;
+            resetTimer();
+            drawMaze();
+        }
+        
+        function drawMaze() {
+            // Clear canvas
+            ctx.fillStyle = '#f0f8ff';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // Draw grid (subtle)
+            ctx.strokeStyle = '#e0e0e0';
+            ctx.lineWidth = 0.5;
+            for (let x = 0; x <= canvas.width; x += 10) {
+                ctx.beginPath();
+                ctx.moveTo(x, 0);
+                ctx.lineTo(x, canvas.height);
+                ctx.stroke();
+            }
+            for (let y = 0; y <= canvas.height; y += 10) {
+                ctx.beginPath();
+                ctx.moveTo(0, y);
+                ctx.lineTo(canvas.width, y);
+                ctx.stroke();
+            }
+            
+            // Draw walls
+            ctx.fillStyle = wallColor;
+            for (let wall of gameState.walls) {
+                ctx.fillRect(wall.x, wall.y, wall.width, wall.height);
+            }
+            
+            // Draw start position
+            ctx.fillStyle = '#4CAF50';
+            ctx.fillRect(gameState.startPos.x - 10, gameState.startPos.y - 10, 30, 30);
+            ctx.fillStyle = 'white';
+            ctx.font = 'bold 12px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText('START', gameState.startPos.x + 5, gameState.startPos.y + 5);
+            
+            // Draw finish position
+            ctx.fillStyle = '#f44336';
+            ctx.fillRect(gameState.finishPos.x - 10, gameState.finishPos.y - 10, 30, 30);
+            ctx.fillStyle = 'white';
+            ctx.fillText('FINISH', gameState.finishPos.x + 5, gameState.finishPos.y + 5);
+            
+            // Draw player (only in play mode)
+            if (gameState.mode === 'play') {
+                ctx.fillStyle = characterColor;
+                ctx.fillRect(gameState.playerPos.x - 5, gameState.playerPos.y - 5, 20, 20);
+                
+                // Add a simple smiley face
+                ctx.fillStyle = 'white';
+                ctx.fillRect(gameState.playerPos.x, gameState.playerPos.y - 2, 2, 2); // left eye
+                ctx.fillRect(gameState.playerPos.x + 6, gameState.playerPos.y - 2, 2, 2); // right eye
+                ctx.fillRect(gameState.playerPos.x + 1, gameState.playerPos.y + 3, 6, 1); // smile
+            }
+        }
+        
+        function updateTimer() {
+            if (!gameState.gameStarted || gameState.gameCompleted) return;
+            
+            const elapsed = Math.floor((Date.now() - gameState.startTime) / 1000);
+            const minutes = Math.floor(elapsed / 60);
+            const seconds = elapsed % 60;
+            timer.textContent = `Time: ${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+            
+            setTimeout(updateTimer, 1000);
+        }
+        
+        function resetTimer() {
+            timer.textContent = 'Time: 00:00';
+        }
+        
+        function completeGame() {
+            gameState.gameCompleted = true;
+            const elapsed = Math.floor((Date.now() - gameState.startTime) / 1000);
+            const minutes = Math.floor(elapsed / 60);
+            const seconds = elapsed % 60;
+            const timeStr = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+            
+            document.getElementById('completionTime').textContent = `Time: ${timeStr}`;
+            celebration.style.display = 'flex';
+            
+            // Create confetti
+            createConfetti();
+            
+            // Play celebration sound (visual feedback instead)
+            setTimeout(() => {
+                celebration.querySelector('.celebration-content').style.animation = 'celebrationPop 0.5s ease-out';
+            }, 100);
+        }
+        
+        function createConfetti() {
+            const colors = ['#ff0000', '#00ff00', '#0000ff', '#ffff00', '#ff00ff', '#00ffff'];
+            
+            for (let i = 0; i < 50; i++) {
+                setTimeout(() => {
+                    const confetti = document.createElement('div');
+                    confetti.className = 'confetti';
+                    confetti.style.left = Math.random() * 100 + '%';
+                    confetti.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+                    confetti.style.animationDelay = Math.random() * 2 + 's';
+                    document.body.appendChild(confetti);
+                    
+                    setTimeout(() => {
+                        confetti.remove();
+                    }, 3000);
+                }, i * 50);
+            }
+        }
+        
+        function closeCelebration() {
+            celebration.style.display = 'none';
+            resetMaze();
+            if (gameState.mode === 'play') {
+                toggleMode(); // Switch back to draw mode
+            }
+        }
+        
+        // Make canvas focusable for keyboard events
+        canvas.setAttribute('tabindex', '0');
+        canvas.focus();
+        
+        // Initial draw
+        drawMaze();
+    </script>
+</body>
+</html>

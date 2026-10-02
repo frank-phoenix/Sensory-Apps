@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Sensory Circuit Games</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            user-select: none;
+            -webkit-user-select: none;
+            margin: 0;
+            padding: 0;
+        }
+        body {
+            background-color: #121218;
+            color: #FFFFFF;
+            font-family: system-ui, -apple-system, sans-serif;
+            overflow: hidden;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        #nav-bar {
+            display: flex;
+            height: 15vh;
+            background: #1E1E28;
+            gap: 10px;
+            padding: 10px;
+            border-bottom: 4px solid #2A2A38;
+        }
+        .nav-btn {
+            flex: 1;
+            border: 4px solid #3A3A4D;
+            border-radius: 16px;
+            background: #252533;
+            color: white;
+            font-size: 1.2rem;
+            font-weight: bold;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: transform 0.1s, background 0.2s;
+        }
+        .nav-btn.active {
+            background: #3B82F6;
+            border-color: #60A5FA;
+            transform: scale(1.02);
+        }
+        .nav-btn:active {
+            transform: scale(0.95);
+        }
+        .nav-btn .icon {
+            font-size: 2rem;
+            margin-bottom: 4px;
+        }
+        #game-container {
+            flex: 1;
+            position: relative;
+            width: 100%;
+            height: 85vh;
+        }
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+            touch-action: none;
+        }
+        /* Big Action Button Overlay for CapsLock/Space */
+        #big-target {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            width: 120px;
+            height: 120px;
+            border-radius: 60px;
+            background: #EF4444;
+            border: 6px solid #FCA5A5;
+            box-shadow: 0 8px 0 #991B1B;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 3rem;
+            cursor: pointer;
+            z-index: 10;
+        }
+        #big-target:active {
+            transform: translateY(4px);
+            box-shadow: 0 4px 0 #991B1B;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="nav-bar">
+        <button class="nav-btn active" onclick="switchGame(0)">
+            <span class="icon">💥</span>
+            <span>1. POP</span>
+        </button>
+        <button class="nav-btn" onclick="switchGame(1)">
+            <span class="icon">🎹</span>
+            <span>2. KEYS</span>
+        </button>
+        <button class="nav-btn" onclick="switchGame(2)">
+            <span class="icon">🚀</span>
+            <span>3. FLY</span>
+        </button>
+        <button class="nav-btn" onclick="switchGame(3)">
+            <span class="icon">🎨</span>
+            <span>4. PAINT</span>
+        </button>
+        <button class="nav-btn" onclick="switchGame(4)">
+            <span class="icon">⚽</span>
+            <span>5. GOAL</span>
+        </button>
+    </div>
+
+    <div id="game-container">
+        <canvas id="stage"></canvas>
+        <div id="big-target">👆</div>
+    </div>
+
+<script>
+// Web Audio API Sound Synthesizer (No external asset files required)
+const AudioContext = window.AudioContext || window.webkitAudioContext;
+let audioCtx = null;
+
+function initAudio() {
+    if (!audioCtx) audioCtx = new AudioContext();
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+}
+
+function playTone(freq, type = 'sine', duration = 0.2, rise = 0) {
+    if (!audioCtx) return;
+    try {
+        let osc = audioCtx.createOscillator();
+        let gain = audioCtx.createGain();
+        osc.type = type;
+        osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+        if (rise !== 0) {
+            osc.frequency.exponentialRampToValueAtTime(freq + rise, audioCtx.currentTime + duration);
+        }
+        gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + duration);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + duration);
+    } catch(e){}
+}
+
+function playFanfare() {
+    if (!audioCtx) return;
+    const notes = [261.63, 329.63, 392.00, 523.25];
+    notes.forEach((freq, idx) => {
+        setTimeout(() => playTone(freq, 'triangle', 0.4), idx * 120);
+    });
+}
+
+// Global Canvas Setup
+const canvas = document.getElementById('stage');
+const ctx = canvas.getContext('2d');
+const bigTarget = document.getElementById('big-target');
+
+function resize() {
+    canvas.width = canvas.parentElement.clientWidth;
+    canvas.height = canvas.parentElement.clientHeight;
+}
+window.addEventListener('resize', resize);
+resize();
+
+// Shared App State
+let currentGame = 0;
+let score = 0;
+const WIN_SCORE = 8;
+let confetti = [];
+let particles = [];
+let gameTimer = 0;
+
+function triggerWin() {
+    playFanfare();
+    confetti = [];
+    for (let i = 0; i < 100; i++) {
+        confetti.push({
+            x: canvas.width / 2,
+            y: canvas.height / 2,
+            vx: (Math.random() - 0.5) * 16,
+            vy: (Math.random() - 0.8) * 18,
+            color: `hsl(${Math.random() * 360}, 90%, 60%)`,
+            size: Math.random() * 12 + 6,
+            rotation: Math.random() * 360
+        });
+    }
+}
+
+function updateConfetti() {
+    confetti.forEach((p, idx) => {
+        p.x += p.vx;
+        p.y += p.vy;
+        p.vy += 0.4;
+        p.rotation += 4;
+        ctx.save();
+        ctx.translate(p.x, p.y);
+        ctx.rotate((p.rotation * Math.PI) / 180);
+        ctx.fillStyle = p.color;
+        ctx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size);
+        ctx.restore();
+    });
+    confetti = confetti.filter(p => p.y < canvas.height + 20);
+}
+
+// ----------------------------------------------------
+// GAME 1: BUBBLE POP
+// ----------------------------------------------------
+let g1Bubbles = [];
+
+function initG1() {
+    score = 0;
+    g1Bubbles = [];
+    for (let i = 0; i < 3; i++) spawnG1Bubble();
+}
+
+function spawnG1Bubble() {
+    const radius = Math.min(canvas.width, canvas.height) * 0.12;
+    g1Bubbles.push({
+        x: Math.random() * (canvas.width - radius * 2) + radius,
+        y: Math.random() * (canvas.height - radius * 2) + radius,
+        r: radius,
+        color: `hsl(${Math.random() * 360}, 80%, 50%)`
+    });
+}
+
+function drawG1() {
+    g1Bubbles.forEach(b => {
+        ctx.beginPath();
+        ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2);
+        ctx.fillStyle = b.color;
+        ctx.fill();
+        ctx.lineWidth = 6;
+        ctx.strokeStyle = '#FFFFFF';
+        ctx.stroke();
+    });
+}
+
+function actionG1(x, y) {
+    let hit = false;
+    for (let i = g1Bubbles.length - 1; i >= 0; i--) {
+        let b = g1Bubbles[i];
+        let dist = Math.hypot(b.x - x, b.y - y);
+        if (dist < b.r || x === 'key') {
+            g1Bubbles.splice(i, 1);
+            playTone(400 + Math.random() * 300, 'sine', 0.15, 200);
+            score++;
+            hit = true;
+            spawnG1Bubble();
+            break;
+        }
+    }
+    if (score >= WIN_SCORE) triggerWin();
+}
+
+// ----------------------------------------------------
+// GAME 2: BIG KEYBOARD RHYTHM
+// ----------------------------------------------------
+let g2Color = '#10B981';
+let g2Scale = 1;
+
+function initG2() { score = 0; }
+function drawG2() {
+    ctx.save();
+    ctx.translate(canvas.width / 2, canvas.height / 2);
+    ctx.scale(g2Scale, g2Scale);
+    ctx.beginPath();
+    ctx.arc(0, 0, Math.min(canvas.width, canvas.height) * 0.25, 0, Math.PI * 2);
+    ctx.fillStyle = g2Color;
+    ctx.fill();
+    ctx.lineWidth = 10;
+    ctx.strokeStyle = '#FFFFFF';
+    ctx.stroke();
+    ctx.restore();
+
+    if (g2Scale > 1) g2Scale -= 0.05;
+}
+
+function actionG2() {
+    g2Color = `hsl(${Math.random() * 360}, 90%, 55%)`;
+    g2Scale = 1.3;
+    playTone(200 + (score % 8) * 60, 'square', 0.25);
+    score++;
+    if (score >= WIN_SCORE) triggerWin();
+}
+
+// ----------------------------------------------------
+// GAME 3: SIMPLE FLYER
+// ----------------------------------------------------
+let g3Y = 0;
+let g3Vy = 0;
+let g3Stars = [];
+
+function initG3() {
+    score = 0;
+    g3Y = canvas.height / 2;
+    g3Vy = 0;
+    g3Stars = [];
+    for(let i=0; i<3; i++) spawnG3Star();
+}
+
+function spawnG3Star() {
+    g3Stars.push({
+        x: canvas.width + Math.random() * 200,
+        y: Math.random() * (canvas.height - 100) + 50,
+        r: 30
+    });
+}
+
+function drawG3() {
+    g3Vy += 0.2; // Gentle gravity
+    g3Y += g3Vy;
+
+    // Boundaries
+    if (g3Y < 50) { g3Y = 50; g3Vy = 0; }
+    if (g3Y > canvas.height - 50) { g3Y = canvas.height - 50; g3Vy = 0; }
+
+    // Rocket
+    ctx.fillStyle = '#F59E0B';
+    ctx.beginPath();
+    ctx.arc(100, g3Y, 35, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Collectibles
+    g3Stars.forEach((s, idx) => {
+        s.x -= 3;
+        ctx.fillStyle = '#FBBF24';
+        ctx.beginPath();
+        ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Collision
+        if (Math.hypot(100 - s.x, g3Y - s.y) < 65) {
+            playTone(600, 'triangle', 0.2, 100);
+            score++;
+            g3Stars.splice(idx, 1);
+            spawnG3Star();
+            if (score >= WIN_SCORE) triggerWin();
+        }
+    });
+
+    if (g3Stars.length < 3) spawnG3Star();
+}
+
+function actionG3() {
+    g3Vy = -7;
+    playTone(300, 'sine', 0.1, 150);
+}
+
+// ----------------------------------------------------
+// GAME 4: CAUSE & EFFECT CANVAS PAINTING
+// ----------------------------------------------------
+let g4Stamps = [];
+
+function initG4() { score = 0; g4Stamps = []; }
+function drawG4() {
+    g4Stamps.forEach(s => {
+        ctx.fillStyle = s.color;
+        ctx.beginPath();
+        ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+        ctx.fill();
+    });
+}
+
+function actionG4(x, y) {
+    let px = (x === 'key') ? Math.random() * canvas.width : x;
+    let py = (y === 'key') ? Math.random() * canvas.height : y;
+
+    g4Stamps.push({
+        x: px, y: py,
+        r: Math.random() * 40 + 30,
+        color: `hsl(${Math.random() * 360}, 85%, 60%)`
+    });
+    playTone(300 + Math.random() * 400, 'sine', 0.15);
+    score++;
+    if (score >= WIN_SCORE) triggerWin();
+}
+
+// ----------------------------------------------------
+// GAME 5: BIG TARGET GOAL
+// ----------------------------------------------------
+let g5Target = { x: 0, y: 0, vx: 3, r: 50 };
+
+function initG5() {
+    score = 0;
+    g5Target.x = canvas.width / 2;
+    g5Target.y = canvas.height / 2;
+    g5Target.vx = 4;
+}
+
+function drawG5() {
+    g5Target.x += g5Target.vx;
+    if (g5Target.x - g5Target.r < 0 || g5Target.x + g5Target.r > canvas.width) {
+        g5Target.vx *= -1;
+    }
+
+    ctx.fillStyle = '#EF4444';
+    ctx.beginPath();
+    ctx.arc(g5Target.x, g5Target.y, g5Target.r, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.lineWidth = 8;
+    ctx.strokeStyle = '#FFFFFF';
+    ctx.stroke();
+}
+
+function actionG5(x, y) {
+    let hit = false;
+    if (x === 'key') {
+        hit = true;
+    } else if (Math.hypot(g5Target.x - x, g5Target.y - y) < g5Target.r + 20) {
+        hit = true;
+    }
+
+    if (hit) {
+        playTone(523.25, 'triangle', 0.3, 100);
+        score++;
+        g5Target.vx = (g5Target.vx > 0 ? 1 : -1) * (Math.abs(g5Target.vx) + 1);
+        if (score >= WIN_SCORE) triggerWin();
+    }
+}
+
+// Switcher Framework
+function switchGame(index) {
+    initAudio();
+    currentGame = index;
+    confetti = [];
+    document.querySelectorAll('.nav-btn').forEach((btn, i) => {
+        btn.classList.toggle('active', i === index);
+    });
+
+    if (index === 0) initG1();
+    if (index === 1) initG2();
+    if (index === 2) initG3();
+    if (index === 3) initG4();
+    if (index === 4) initG5();
+}
+
+function handleInput(x, y) {
+    initAudio();
+    if (currentGame === 0) actionG1(x, y);
+    else if (currentGame === 1) actionG2();
+    else if (currentGame === 2) actionG3();
+    else if (currentGame === 3) actionG4(x, y);
+    else if (currentGame === 4) actionG5(x, y);
+}
+
+// Global Event Listeners
+canvas.addEventListener('pointerdown', (e) => {
+    const rect = canvas.getBoundingClientRect();
+    handleInput(e.clientX - rect.left, e.clientY - rect.top);
+});
+
+bigTarget.addEventListener('pointerdown', (e) => {
+    e.stopPropagation();
+    handleInput('key', 'key');
+});
+
+window.addEventListener('keydown', (e) => {
+    // Triggers on CapsLock, Space, Enter, or Arrow Keys
+    if (['CapsLock', 'Space', 'Enter', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.code) || e.key === 'CapsLock') {
+        e.preventDefault();
+        handleInput('key', 'key');
+    }
+});
+
+// Render Loop
+function render() {
+    ctx.fillStyle = '#121218';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    if (currentGame === 0) drawG1();
+    if (currentGame === 1) drawG2();
+    if (currentGame === 2) drawG3();
+    if (currentGame === 3) drawG4();
+    if (currentGame === 4) drawG5();
+
+    // UI Overlay: Visual Progress Bar
+    const progress = Math.min(score / WIN_SCORE, 1);
+    ctx.fillStyle = '#252533';
+    ctx.fillRect(20, 20, canvas.width - 40, 20);
+    ctx.fillStyle = '#10B981';
+    ctx.fillRect(20, 20, (canvas.width - 40) * progress, 20);
+
+    updateConfetti();
+    requestAnimationFrame(render);
+}
+
+switchGame(0);
+render();
+</script>
+</body>
+</html>

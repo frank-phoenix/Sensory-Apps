@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🎮 Character Creator 🎨</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            background-color: #f0f0f0;
+        }
+
+        .character-area {
+            width: 40%;
+            text-align: center;
+        }
+
+        .character-display {
+            font-size: 8em; /* Big character display */
+            border: 2px dashed #ccc;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .controls-area {
+            width: 40%;
+        }
+
+        .skill-slider-container {
+            margin-bottom: 20px;
+            padding: 15px;
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 2px 2px 5px #ddd;
+        }
+
+        .skill-label {
+            display: block;
+            font-size: 1.5em; /* Big label */
+            margin-bottom: 10px;
+        }
+
+        .slider-input {
+            width: 100%;
+            -webkit-appearance: none;
+            appearance: none;
+            height: 20px;
+            background: #d3d3d3;
+            border-radius: 5px;
+            outline: none;
+            opacity: 0.7;
+            -webkit-transition: .2s;
+            transition: opacity .2s;
+        }
+
+        .slider-input:hover {
+            opacity: 1;
+        }
+
+        .slider-value {
+            font-size: 1.2em;
+            display: inline-block;
+            margin-left: 10px;
+        }
+
+        .credits-display {
+            font-size: 2em; /* Big credits display */
+            text-align: center;
+            margin-top: 20px;
+            padding: 15px;
+            background-color: lightgreen;
+            border-radius: 8px;
+        }
+
+        /* Basic animation (you'd likely use more sophisticated techniques) */
+        .animated-character {
+            animation: pulse 1s infinite alternate;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            100% { transform: scale(1.05); }
+        }
+
+        /* Touchscreen enhancements (can be further refined) */
+        input[type="range"] {
+            -webkit-tap-highlight-color: transparent; /* Remove highlight on tap */
+        }
+
+        /* Styles to visually represent skill changes (very basic) */
+        .muscles-strong { font-size: 9em; }
+        .speed-fast { font-style: italic; }
+        .clever-smart { color: blue; }
+        .defense-tough { border-width: 5px; border-color: green; }
+        .creative-sparkly { text-shadow: 2px 2px 4px #aaa; }
+
+    </style>
+</head>
+<body>
+    <div class="character-area">
+        <div id="characterDisplay" class="character-display animated-character">😊</div>
+        <div>
+            <button onclick="changeBaseCharacter('😊')">😊</button>
+            <button onclick="changeBaseCharacter('⭐')">⭐</button>
+            <button onclick="changeBaseCharacter('🤖')">🤖</button>
+        </div>
+    </div>
+
+    <div class="controls-area">
+        <h2>🛠️ Customize Skills 🛠️</h2>
+        <div class="skill-slider-container">
+            <label for="muscles" class="skill-label">💪 Muscles: <span id="musclesValue">0</span></label>
+            <input type="range" id="muscles" min="0" max="100" value="0" class="slider-input" oninput="updateSkillsAndCredits()">
+        </div>
+        <div class="skill-slider-container">
+            <label for="speed" class="skill-label">💨 Speed: <span id="speedValue">0</span></label>
+            <input type="range" id="speed" min="0" max="100" value="0" class="slider-input" oninput="updateSkillsAndCredits()">
+        </div>
+        <div class="skill-slider-container">
+            <label for="cleverness" class="skill-label">🧠 Cleverness: <span id="clevernessValue">0</span></label>
+            <input type="range" id="cleverness" min="0" max="100" value="0" class="slider-input" oninput="updateSkillsAndCredits()">
+        </div>
+        <div class="skill-slider-container">
+            <label for="defense" class="skill-label">🛡️ Defense: <span id="defenseValue">0</span></label>
+            <input type="range" id="defense" min="0" max="100" value="0" class="slider-input" oninput="updateSkillsAndCredits()">
+        </div>
+        <div class="skill-slider-container">
+            <label for="creativity" class="skill-label">✨ Creativity: <span id="creativityValue">0</span></label>
+            <input type="range" id="creativity" min="0" max="100" value="0" class="slider-input" oninput="updateSkillsAndCredits()">
+        </div>
+
+        <div id="creditsDisplay" class="credits-display">💰 Credits: 100</div>
+    </div>
+
+    <script>
+        let credits = 100;
+        const creditsDisplay = document.getElementById('creditsDisplay');
+        const characterDisplay = document.getElementById('characterDisplay');
+        let currentBaseCharacter = '😊';
+
+        const musclesSlider = document.getElementById('muscles');
+        const speedSlider = document.getElementById('speed');
+        const clevernessSlider = document.getElementById('cleverness');
+        const defenseSlider = document.getElementById('defense');
+        const creativitySlider = document.getElementById('creativity');
+
+        const musclesValueSpan = document.getElementById('musclesValue');
+        const speedValueSpan = document.getElementById('speedValue');
+        const clevernessValueSpan = document.getElementById('clevernessValue');
+        const defenseValueSpan = document.getElementById('defenseValue');
+        const creativityValueSpan = document.getElementById('creativityValue');
+
+        function updateCharacterAppearance() {
+            characterDisplay.className = 'character-display animated-character'; // Reset classes
+            characterDisplay.textContent = currentBaseCharacter;
+
+            if (parseInt(musclesSlider.value) > 70) {
+                characterDisplay.classList.add('muscles-strong');
+            }
+            if (parseInt(speedSlider.value) > 70) {
+                characterDisplay.classList.add('speed-fast');
+            }
+            if (parseInt(clevernessSlider.value) > 70) {
+                characterDisplay.classList.add('clever-smart');
+            }
+            if (parseInt(defenseSlider.value) > 70) {
+                characterDisplay.classList.add('defense-tough');
+            }
+            if (parseInt(creativitySlider.value) > 70) {
+                characterDisplay.classList.add('creative-sparkly');
+            }
+        }
+
+        function updateCredits() {
+            const totalSpent =
+                parseInt(musclesSlider.value) +
+                parseInt(speedSlider.value) +
+                parseInt(clevernessSlider.value) +
+                parseInt(defenseSlider.value) +
+                parseInt(creativitySlider.value);
+
+            credits = 100 - totalSpent;
+            creditsDisplay.textContent = `💰 Credits: ${Math.max(0, credits)}`; // Ensure credits don't go below 0
+        }
+
+        function updateSkillValues() {
+            musclesValueSpan.textContent = musclesSlider.value;
+            speedValueSpan.textContent = speedSlider.value;
+            clevernessValueSpan.textContent = clevernessSlider.value;
+            defenseValueSpan.textContent = defenseSlider.value;
+            creativityValueSpan.textContent = creativitySlider.value;
+        }
+
+        function updateSkillsAndCredits() {
+            const totalRequested =
+                parseInt(musclesSlider.value) +
+                parseInt(speedSlider.value) +
+                parseInt(clevernessSlider.value) +
+                parseInt(defenseSlider.value) +
+                parseInt(creativitySlider.value);
+
+            if (totalRequested <= 100) {
+                updateSkillValues();
+                updateCredits();
+                updateCharacterAppearance();
+            } else {
+                // If exceeding credits, revert the last changed slider
+                let overshoot = totalRequested - 100;
+                if (overshoot > 0) {
+                    // Determine which slider caused the overshoot (simplistic approach)
+                    if (parseInt(musclesValueSpan.textContent) < parseInt(musclesSlider.value)) musclesSlider.value = parseInt(musclesValueSpan.textContent);
+                    else if (parseInt(speedValueSpan.textContent) < parseInt(speedSlider.value)) speedSlider.value = parseInt(speedValueSpan.textContent);
+                    else if (parseInt(clevernessValueSpan.textContent) < parseInt(clevernessSlider.value)) clevernessSlider.value = parseInt(clevernessValueSpan.textContent);
+                    else if (parseInt(defenseValueSpan.textContent) < parseInt(defenseSlider.value)) defenseSlider.value = parseInt(defenseValueSpan.textContent);
+                    else if (parseInt(creativityValueSpan.textContent) < parseInt(creativitySlider.value)) creativitySlider.value = parseInt(creativityValueSpan.textContent);
+
+                    updateSkillValues();
+                    updateCredits();
+                    alert("⚠️ Not enough credits!");
+                }
+            }
+        }
+
+        function changeBaseCharacter(newCharacter) {
+            currentBaseCharacter = newCharacter;
+            updateCharacterAppearance();
+        }
+
+        // Initial update to display initial credits
+        updateCredits();
+        updateCharacterAppearance();
+    </script>
+</body>
+</html>

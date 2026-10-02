@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Sensory Challenge Station 2</title>
+<style>
+html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#0b1020;font-family:Arial,sans-serif;touch-action:manipulation}
+#bar{height:64px;background:#151d35;color:#fff;display:flex;align-items:center;justify-content:space-between;padding:0 14px;box-sizing:border-box}
+#name{font-weight:900;font-size:22px;letter-spacing:1px}#info{font-weight:700;color:#c7d7ff}
+canvas{display:block;width:100%;height:calc(100% - 64px)}
+#buttons{position:fixed;bottom:12px;left:0;right:0;display:flex;justify-content:center;gap:12px;pointer-events:none}
+button{pointer-events:auto;border:0;border-radius:24px;padding:14px 24px;font-size:20px;font-weight:900;background:#f4f7ff;color:#111827;box-shadow:0 5px 0 #8290ad}
+button:active{transform:translateY(4px);box-shadow:0 1px 0 #8290ad}
+#home{position:fixed;right:10px;top:10px;display:none}
+</style>
+</head>
+<body>
+<div id="bar"><div id="name">SENSORY CHALLENGE STATION</div><div id="info">Choose</div></div>
+<canvas id="c"></canvas><button id="home">HOME</button><div id="buttons"></div>
+<script>
+(()=>{
+const c=document.getElementById('c'),x=c.getContext('2d'),info=document.getElementById('info'),home=document.getElementById('home'),buttons=document.getElementById('buttons');
+let W,H,D,scene='menu',game='',particles=[],raf;
+let state={};
+function size(){D=Math.min(devicePixelRatio||1,2);let r=c.getBoundingClientRect();W=r.width;H=r.height;c.width=W*D;c.height=H*D;x.setTransform(D,0,0,D,0,0)}
+addEventListener('resize',size);size();
+
+let ac=window.AudioContext?new AudioContext():null;
+function beep(kind='ok'){if(!ac)return;if(ac.state==='suspended')ac.resume();let o=ac.createOscillator(),g=ac.createGain(),n=ac.currentTime;o.connect(g);g.connect(ac.destination);let f=kind==='bad'?150:kind==='win'?950:kind==='tap'?420:650;o.frequency.setValueAtTime(f,n);o.frequency.linearRampToValueAtTime(kind==='win'?1500:f*1.2,n+.18);g.gain.setValueAtTime(.001,n);g.gain.exponentialRampToValueAtTime(.16,n+.02);g.gain.exponentialRampToValueAtTime(.001,n+.28);o.start(n);o.stop(n+.3)}
+const rnd=(a,b)=>a+Math.random()*(b-a);
+function circle(a,b,r,col){x.beginPath();x.arc(a,b,r,0,Math.PI*2);x.fillStyle=col;x.fill()}
+function rect(a,b,w,h,r,col){x.beginPath();x.roundRect(a,b,w,h,r);x.fillStyle=col;x.fill()}
+function txt(t,a,b,s=28,col='#fff'){x.fillStyle=col;x.font=`900 ${s}px Arial`;x.textAlign='center';x.textBaseline='middle';x.fillText(t,a,b)}
+function fx(a,b,n=20){for(let i=0;i<n;i++)particles.push({a,b,vx:rnd(-6,6),vy:rnd(-8,2),life:rnd(25,70),h:rnd(0,360),s:rnd(4,12)})}
+function drawFX(){particles.forEach(p=>{p.a+=p.vx;p.b+=p.vy;p.vy+=.2;p.life--;x.fillStyle=`hsla(${p.h},90%,65%,${Math.max(0,p.life/60)})`;x.fillRect(p.a,p.b,p.s,p.s)});particles=particles.filter(p=>p.life>0)}
+function clearBtns(){buttons.innerHTML=''}function btn(t,f){let b=document.createElement('button');b.textContent=t;b.onclick=()=>{beep('tap');f()};buttons.appendChild(b)}
+function finish(title,sub){scene='finish';home.style.display='none';clearBtns();fx(W/2,H*.4,120);beep('win');btn('AGAIN',()=>start(game));btn('HOME',menu);state.finish=(title,sub)}
+function menu(){scene='menu';game='';home.style.display='none';clearBtns();info.textContent='Choose a challenge';btn('START',()=>start('light'));loop()}
+const choices=[['LIGHT PATH','light','#f43f5e'],['SORT','sort','#3b82f6'],['REACT','react','#22c55e'],['DRUM','drum','#a855f7'],['SAFE','safe','#f59e0b']];
+let cards=[];
+function start(g){game=g;scene='play';particles=[];home.style.display='block';clearBtns();info.textContent='Play';init[g]();loop()}
+
+const init={
+ light(){state={level:0,points:[],need:4,path:[],pos:0};newLight()},
+ sort(){state={items:[],score:0,total:8};for(let i=0;i<8;i++)state.items.push({type:i%2?'circle':'square',x:rnd(80,W-80),y:rnd(130,H*.55),r:38,done:false})},
+ react(){state={phase:'wait',t:performance.now()+rnd(1200,3500),score:0,round:0}},
+ drum(){state={hits:0,max:12,beat:0}},
+ safe(){state={x:W/2,y:H*.55,score:0,max:8,objects:[]};for(let i=0;i<8;i++)state.objects.push({x:rnd(60,W-60),y:rnd(130,H-80),good:i%2===0,r:35,done:false})}
+};
+function newLight(){let s=state;s.points=[];for(let i=0;i<s.need;i++)s.points.push({x:rnd(70,W-70),y:rnd(110,H-70)});s.pos=0}
+
+function renderMenu(){x.clearRect(0,0,W,H);cards=[];txt('CHOOSE A CHALLENGE',W/2,45,Math.min(36,W/11));let cols=W<700?1:2,cw=Math.min(400,(W-60-(cols-1)*20)/cols),ch=82,rows=Math.ceil(5/cols),sy=(H-rows*(ch+16))/2;
+choices.forEach((q,i)=>{let col=i%cols,row=Math.floor(i/cols),a=(W-(cols*cw+(cols-1)*20))/2+col*(cw+20),b=sy+row*(ch+16);rect(a,b,cw,ch,22,q[2]);txt(q[0],a+cw/2,b+ch/2,26);cards.push({a,b,cw,ch,id:q[1]})})}
+
+function renderLight(){x.clearRect(0,0,W,H);let s=state;txt('FOLLOW THE LIGHT',W/2,45,27);for(let i=0;i<s.points.length;i++){let p=s.points[i],active=i===s.pos;circle(p.x,p.y,active?42:26,active?'#fff':'#334155');circle(p.x,p.y,active?28:16,active?'#f43f5e':'#64748b')}txt(`${s.pos}/${s.need}`,W/2,H-30,22)}
+function tapLight(a,b){let s=state,p=s.points[s.pos];if(Math.hypot(a-p.x,b-p.y)<60){fx(p.x,p.y,25);beep();s.pos++;if(s.pos===s.need){s.level++;if(s.level>=3)finish('PATH COMPLETE','Three light paths completed');else{s.need++;newLight()}}}else beep('bad')}
+
+function renderSort(){x.clearRect(0,0,W,H);let s=state;txt('SORT THE SHAPES',W/2,45,27);rect(20,H*.68,W*.42,H*.22,25,'#2563eb');rect(W*.56,H*.68,W*.42,H*.22,25,'#be123c');txt('●',W*.23,H*.79,54);txt('■',W*.77,H*.79,50);s.items.forEach(it=>{if(!it.done){if(it.type==='circle')circle(it.x,it.y,it.r,'#60a5fa');else rect(it.x-it.r,it.y-it.r,it.r*2,it.r*2,10,'#fb7185')}});txt(`${s.score}/${s.total}`,W/2,90,22)}
+function tapSort(a,b){let s=state,it=s.items.find(z=>!z.done&&Math.hypot(a-z.x,b-z.y)<z.r+18);if(!it)return;it.done=true;let target=it.type==='circle'?W*.23:W*.77;fx(target,H*.79,20);beep();s.score++;if(s.score>=s.total)finish('SORTED!','All shapes found their place')}
+
+function renderReact(){x.clearRect(0,0,W,H);let s=state,now=performance.now();if(s.phase==='wait'&&now>s.t){s.phase='GO';s.go=now;beep('tap')}let col=s.phase==='GO'?'#22c55e':'#7f1d1d';circle(W/2,H*.48,Math.min(W,H)*.18,col);txt(s.phase==='GO'?'GO!':'WAIT',W/2,H*.48,48);txt(`ROUND ${s.round+1}/5`,W/2,H-40,22)}
+function tapReact(){let s=state;if(s.phase==='GO'){let ms=Math.round(performance.now()-s.go);s.score++;s.round++;fx(W/2,H*.48,45);beep();if(s.round>=5)finish('REACTION STAR!',`Five successful reactions`);else{s.phase='wait';s.t=performance.now()+rnd(1000,3000)}}else if(s.phase==='wait'){beep('bad')}}
+
+function renderDrum(){x.clearRect(0,0,W,H);let s=state;txt('MAKE A BEAT',W/2,45,27);let r=Math.min(W,H)*.19;circle(W/2,H*.48,r,'#7c3aed');circle(W/2,H*.48,r*.65,'#c4b5fd');txt('TAP',W/2,H*.48,34);txt(`${s.hits}/${s.max}`,W/2,H-40,24)}
+function tapDrum(a,b){let s=state;if(Math.hypot(a-W/2,b-H*.48)<Math.min(W,H)*.24){s.hits++;fx(W/2,H*.48,18);beep();if(s.hits>=s.max)finish('BEAT COMPLETE!','You made the rhythm')}}
+
+function renderSafe(){x.clearRect(0,0,W,H);let s=state;txt('TAP ONLY THE STARS',W/2,45,27);s.objects.forEach(o=>{if(o.done)return;if(o.good){x.fillStyle='#facc15';x.font=`900 ${o.r*1.6}px Arial`;x.textAlign='center';x.textBaseline='middle';x.fillText('★',o.x,o.y)}else{circle(o.x,o.y,o.r,'#ef4444');txt('×',o.x,o.y,32)}});txt(`${s.score}/${s.max/2}`,W/2,H-35,22)}
+function tapSafe(a,b){let s=state,o=s.objects.find(z=>!z.done&&Math.hypot(a-z.x,b-z.y)<z.r+15);if(!o)return;if(o.good){o.done=true;s.score++;fx(o.x,o.y,30);beep();if(s.score>=s.max/2)finish('STAR HUNTER!','Every star collected')}else beep('bad')}
+
+function renderFinish(){x.clearRect(0,0,W,H);x.fillStyle='#101827';x.fillRect(0,0,W,H);drawFX();txt('★ '+state.finish[0]+' ★',W/2,H*.38,Math.min(48,W/11));txt(state.finish[1],W/2,H*.5,24,'#cbd5e1')}
+
+function draw(){if(scene==='menu')renderMenu();else if(scene==='finish')renderFinish();else{renderers[game]();drawFX()}}
+const renderers={light:renderLight,sort:renderSort,react:renderReact,drum:renderDrum,safe:renderSafe};
+function loop(){cancelAnimationFrame(raf);function f(){draw();raf=requestAnimationFrame(f)}f()}
+c.addEventListener('pointerdown',e=>{let r=c.getBoundingClientRect(),a=e.clientX-r.left,b=e.clientY-r.top;if(scene==='menu'){let z=cards.find(q=>a>=q.a&&a<=q.a+q.cw&&b>=q.b&&b<=q.b+q.ch);if(z)start(z.id)}else if(scene==='play'){({light:tapLight,sort:tapSort,react:tapReact,drum:tapDrum,safe:tapSafe}[game])(a,b)}});
+
+document.addEventListener('keydown',e=>{if(!['CapsLock','Space','Enter','ArrowLeft','ArrowRight'].includes(e.code))return;e.preventDefault();if(scene==='menu'){start('light');return}if(scene!=='play')return;if(game==='light'){let p=state.points[state.pos];tapLight(p.x,p.y)}if(game==='sort'){let z=state.items.find(q=>!q.done);if(z)tapSort(z.x,z.y)}if(game==='react')tapReact();if(game==='drum')tapDrum(W/2,H*.48);if(game==='safe'){let z=state.objects.find(q=>!q.done&&q.good);if(z)tapSafe(z.x,z.y)}});
+home.onclick=menu;menu();
+})();
+</script>
+</body>
+</html>

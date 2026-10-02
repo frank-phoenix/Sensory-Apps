@@ -1,0 +1,722 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Let's Play Together!</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;700&family=Baloo+2:wght@600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --sky:#EAF6FF;
+    --sun:#FFD166;
+    --coral:#FF6B6B;
+    --mint:#3DCCC7;
+    --grape:#A78BFA;
+    --tangerine:#FFA94D;
+    --bubble:#FF8FAB;
+    --ink:#2B2540;
+    --card:#FFFFFF;
+    --leaf:#6BCB77;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    min-height:100vh;
+    background:var(--sky);
+    font-family:'Baloo 2', sans-serif;
+    color:var(--ink);
+    overflow-x:hidden;
+    position:relative;
+  }
+
+  /* ---------- floating background blobs ---------- */
+  .blob{
+    position:fixed;
+    border-radius:50%;
+    opacity:0.35;
+    filter:blur(1px);
+    z-index:0;
+    animation:float 9s ease-in-out infinite;
+  }
+  .blob.b1{width:180px;height:180px;background:var(--sun);top:-60px;left:-60px;animation-duration:11s;}
+  .blob.b2{width:140px;height:140px;background:var(--bubble);bottom:-40px;right:-40px;animation-duration:8s;}
+  .blob.b3{width:110px;height:110px;background:var(--mint);top:40%;right:-50px;animation-duration:10s;}
+  .blob.b4{width:100px;height:100px;background:var(--grape);bottom:20%;left:-40px;animation-duration:12s;}
+  @keyframes float{
+    0%,100%{transform:translateY(0) translateX(0);}
+    50%{transform:translateY(-25px) translateX(15px);}
+  }
+
+  .wrap{
+    position:relative;
+    z-index:1;
+    max-width:1000px;
+    margin:0 auto;
+    padding:24px 20px 60px;
+  }
+
+  /* ---------- mascot ---------- */
+  .mascot-row{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:18px;
+    margin-bottom:6px;
+  }
+  .mascot{
+    font-size:70px;
+    display:inline-block;
+    animation:wiggle 2.6s ease-in-out infinite;
+    transform-origin:50% 80%;
+  }
+  @keyframes wiggle{
+    0%,100%{transform:rotate(-8deg);}
+    50%{transform:rotate(8deg);}
+  }
+  .speech{
+    background:var(--card);
+    border:4px solid var(--ink);
+    border-radius:24px;
+    padding:10px 20px;
+    font-family:'Fredoka', sans-serif;
+    font-size:22px;
+    font-weight:500;
+    position:relative;
+    box-shadow:4px 4px 0 var(--ink);
+  }
+
+  h1.title{
+    text-align:center;
+    font-family:'Fredoka', sans-serif;
+    font-weight:700;
+    font-size:clamp(34px, 6vw, 56px);
+    margin:6px 0 2px;
+    color:var(--ink);
+  }
+  p.subtitle{
+    text-align:center;
+    font-size:clamp(18px, 3vw, 24px);
+    margin:0 0 30px;
+    font-weight:600;
+    color:#5b527a;
+  }
+
+  /* ---------- shuffle button ---------- */
+  .shuffle-row{
+    display:flex;
+    justify-content:center;
+    margin-bottom:36px;
+  }
+  .shuffle-btn{
+    font-family:'Fredoka', sans-serif;
+    font-size:24px;
+    font-weight:700;
+    background:var(--grape);
+    color:white;
+    border:none;
+    border-radius:60px;
+    padding:18px 36px;
+    display:flex;
+    align-items:center;
+    gap:14px;
+    cursor:pointer;
+    box-shadow:0 6px 0 #7c5cf0;
+    transition:transform .12s ease;
+  }
+  .shuffle-btn:active{transform:translateY(6px); box-shadow:0 0 0 #7c5cf0;}
+  .shuffle-btn .dice{
+    font-size:32px;
+    display:inline-block;
+  }
+  .shuffle-btn.spinning .dice{
+    animation:spin 0.7s linear infinite;
+  }
+  @keyframes spin{
+    from{transform:rotate(0deg);}
+    to{transform:rotate(360deg);}
+  }
+
+  /* ---------- card grid ---------- */
+  .grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fit, minmax(220px, 1fr));
+    gap:22px;
+  }
+  .card{
+    background:var(--card);
+    border:5px solid var(--ink);
+    border-radius:28px;
+    padding:26px 18px 22px;
+    text-align:center;
+    cursor:pointer;
+    box-shadow:6px 6px 0 var(--ink);
+    transition:transform .15s ease, box-shadow .15s ease;
+    position:relative;
+  }
+  .card:hover, .card:focus-visible{
+    transform:translate(-4px,-4px);
+    box-shadow:10px 10px 0 var(--ink);
+    outline:none;
+  }
+  .card:active{
+    transform:translate(2px,2px);
+    box-shadow:2px 2px 0 var(--ink);
+  }
+  .card .icon{
+    font-size:64px;
+    display:inline-block;
+    margin-bottom:10px;
+    animation:bob 2.4s ease-in-out infinite;
+  }
+  @keyframes bob{
+    0%,100%{transform:translateY(0) rotate(0deg);}
+    50%{transform:translateY(-10px) rotate(-4deg);}
+  }
+  .card h2{
+    font-family:'Fredoka', sans-serif;
+    font-size:26px;
+    margin:4px 0 0;
+    font-weight:700;
+  }
+  .card .tag{
+    font-size:15px;
+    font-weight:600;
+    color:white;
+    display:inline-block;
+    margin-top:10px;
+    padding:4px 14px;
+    border-radius:20px;
+  }
+
+  /* per-card accent colors */
+  .card.c1{background:#FFF7E0;} .card.c1 .tag{background:var(--sun); color:var(--ink);}
+  .card.c2{background:#FFEDEF;} .card.c2 .tag{background:var(--coral);}
+  .card.c3{background:#E6FBF9;} .card.c3 .tag{background:var(--mint);}
+  .card.c4{background:#F3EEFF;} .card.c4 .tag{background:var(--grape);}
+  .card.c5{background:#FFF1E5;} .card.c5 .tag{background:var(--tangerine); color:var(--ink);}
+  .card.c6{background:#FFEEF4;} .card.c6 .tag{background:var(--bubble);}
+
+  /* ---------- activity detail view ---------- */
+  .detail{
+    display:none;
+  }
+  .detail.active{
+    display:block;
+  }
+  .home.hidden{
+    display:none;
+  }
+  .back-btn{
+    font-family:'Fredoka', sans-serif;
+    font-size:20px;
+    font-weight:700;
+    background:white;
+    border:4px solid var(--ink);
+    border-radius:50px;
+    padding:12px 26px;
+    cursor:pointer;
+    box-shadow:4px 4px 0 var(--ink);
+    margin-bottom:20px;
+    display:inline-flex;
+    align-items:center;
+    gap:8px;
+  }
+  .back-btn:active{transform:translate(3px,3px); box-shadow:0 0 0 var(--ink);}
+
+  .detail-card{
+    background:var(--card);
+    border:6px solid var(--ink);
+    border-radius:36px;
+    padding:36px 28px 40px;
+    box-shadow:8px 8px 0 var(--ink);
+    text-align:center;
+  }
+  .detail-icon{
+    font-size:100px;
+    display:inline-block;
+    margin-bottom:6px;
+  }
+  .detail-title{
+    font-family:'Fredoka', sans-serif;
+    font-weight:700;
+    font-size:clamp(32px,5vw,46px);
+    margin:6px 0 18px;
+  }
+  .steps{
+    display:flex;
+    flex-direction:column;
+    gap:18px;
+    max-width:640px;
+    margin:0 auto 26px;
+    text-align:left;
+  }
+  .step{
+    display:flex;
+    align-items:center;
+    gap:18px;
+    background:#F7F7FB;
+    border:3px solid var(--ink);
+    border-radius:20px;
+    padding:16px 20px;
+  }
+  .step .num{
+    font-family:'Fredoka', sans-serif;
+    font-weight:700;
+    font-size:26px;
+    background:var(--ink);
+    color:white;
+    min-width:44px;
+    height:44px;
+    border-radius:50%;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    flex-shrink:0;
+  }
+  .step .emoji{
+    font-size:38px;
+    flex-shrink:0;
+    animation:pulse 1.8s ease-in-out infinite;
+  }
+  @keyframes pulse{
+    0%,100%{transform:scale(1);}
+    50%{transform:scale(1.15);}
+  }
+  .step p{
+    font-size:22px;
+    font-weight:600;
+    margin:0;
+    line-height:1.3;
+  }
+  .timer-wrap{
+    display:flex;
+    justify-content:center;
+    gap:16px;
+    flex-wrap:wrap;
+    margin-top:10px;
+  }
+  .timer-btn{
+    font-family:'Fredoka', sans-serif;
+    font-size:20px;
+    font-weight:700;
+    border:none;
+    border-radius:50px;
+    padding:14px 26px;
+    cursor:pointer;
+    color:white;
+    box-shadow:0 5px 0 rgba(0,0,0,0.25);
+  }
+  .timer-btn:active{transform:translateY(5px); box-shadow:none;}
+  .big-timer{
+    font-family:'Fredoka', sans-serif;
+    font-weight:700;
+    font-size:64px;
+    margin:14px 0;
+    display:none;
+  }
+  .big-timer.show{display:block;}
+  .go-banner{
+    font-family:'Fredoka', sans-serif;
+    font-weight:700;
+    font-size:40px;
+    color:var(--leaf);
+    display:none;
+    margin-top:6px;
+    animation:pop 0.5s ease;
+  }
+  .go-banner.show{display:block;}
+  @keyframes pop{
+    0%{transform:scale(0);}
+    70%{transform:scale(1.2);}
+    100%{transform:scale(1);}
+  }
+
+  /* ---------- wheel overlay ---------- */
+  .overlay{
+    position:fixed;
+    inset:0;
+    background:rgba(43,37,64,0.55);
+    display:none;
+    align-items:center;
+    justify-content:center;
+    z-index:20;
+  }
+  .overlay.show{display:flex;}
+  .overlay-card{
+    background:white;
+    border:6px solid var(--ink);
+    border-radius:32px;
+    padding:40px 30px;
+    text-align:center;
+    box-shadow:10px 10px 0 var(--ink);
+    max-width:340px;
+  }
+  .overlay-card .icon{
+    font-size:90px;
+    animation:spinIcon 1.2s ease-out;
+  }
+  @keyframes spinIcon{
+    0%{transform:rotate(0deg) scale(0.5); opacity:0;}
+    100%{transform:rotate(720deg) scale(1); opacity:1;}
+  }
+  .overlay-card h3{
+    font-family:'Fredoka', sans-serif;
+    font-size:30px;
+    margin:10px 0 20px;
+  }
+  .overlay-btn-row{
+    display:flex;
+    gap:14px;
+    justify-content:center;
+    flex-wrap:wrap;
+  }
+  .ov-btn{
+    font-family:'Fredoka', sans-serif;
+    font-weight:700;
+    font-size:18px;
+    border:none;
+    border-radius:50px;
+    padding:12px 22px;
+    cursor:pointer;
+    color:white;
+  }
+  .ov-go{background:var(--leaf);}
+  .ov-again{background:var(--grape);}
+  .ov-close{background:#bbb;}
+
+  @media (prefers-reduced-motion: reduce){
+    *{animation-duration:0.01ms !important; animation-iteration-count:1 !important;}
+  }
+
+  footer{
+    text-align:center;
+    font-size:14px;
+    color:#8b83a8;
+    margin-top:40px;
+    font-weight:600;
+  }
+</style>
+</head>
+<body>
+
+<div class="blob b1"></div>
+<div class="blob b2"></div>
+<div class="blob b3"></div>
+<div class="blob b4"></div>
+
+<div class="wrap">
+
+  <!-- ============ HOME VIEW ============ -->
+  <div class="home" id="home">
+    <div class="mascot-row">
+      <span class="mascot">☀️</span>
+      <div class="speech" id="speechBubble">Hi friends! Let's play!</div>
+    </div>
+    <h1 class="title">Let's Play Together!</h1>
+    <p class="subtitle">Pick a game with your class 👇</p>
+
+    <div class="shuffle-row">
+      <button class="shuffle-btn" id="shuffleBtn" onclick="spinWheel()">
+        <span class="dice">🎲</span> Surprise Me!
+      </button>
+    </div>
+
+    <div class="grid" id="cardGrid"></div>
+
+    <footer>Made for happy circle time 💛</footer>
+  </div>
+
+  <!-- ============ DETAIL VIEW ============ -->
+  <div class="detail" id="detail">
+    <button class="back-btn" onclick="goHome()">⬅️ Back</button>
+    <div class="detail-card" id="detailCard">
+      <!-- filled by JS -->
+    </div>
+  </div>
+
+</div>
+
+<!-- ============ SHUFFLE OVERLAY ============ -->
+<div class="overlay" id="overlay">
+  <div class="overlay-card" id="overlayCard">
+    <!-- filled by JS -->
+  </div>
+</div>
+
+<script>
+/* ===================== ACTIVITY DATA ===================== */
+const activities = [
+  {
+    id:'sounds',
+    className:'c1',
+    icon:'🐶',
+    name:'Animal Sounds',
+    tag:'Guess & Copy',
+    detailIcon:'🐮🐔🐱',
+    color:'#FFD166',
+    steps:[
+      {emoji:'🐷', text:'One friend picks an animal.'},
+      {emoji:'🔊', text:'That friend makes the animal sound.'},
+      {emoji:'🤔', text:'Everyone guesses the animal.'},
+      {emoji:'👥', text:'The whole class copies the sound together!'},
+      {emoji:'🔁', text:'Next friend picks a new animal.'}
+    ],
+    timer:0
+  },
+  {
+    id:'faces',
+    className:'c2',
+    icon:'😊',
+    name:'Feelings Faces',
+    tag:'Copy My Face',
+    detailIcon:'😀😢😲',
+    color:'#FF6B6B',
+    steps:[
+      {emoji:'🧑‍🏫', text:'Teacher makes a big feeling face.'},
+      {emoji:'👀', text:'Everyone looks closely.'},
+      {emoji:'🪞', text:'Everyone copies the same face.'},
+      {emoji:'🗣️', text:'Say the feeling out loud together: "Happy!" "Surprised!"'},
+      {emoji:'🔁', text:'Take turns making a new face.'}
+    ],
+    timer:0
+  },
+  {
+    id:'freeze',
+    className:'c3',
+    icon:'🕺',
+    name:'Freeze Dance',
+    tag:'Dance & Stop',
+    detailIcon:'💃🧊',
+    color:'#3DCCC7',
+    steps:[
+      {emoji:'🎵', text:'Music plays. Everybody dances!'},
+      {emoji:'🤚', text:'Music stops.'},
+      {emoji:'🧍', text:'Freeze like a statue — no moving!'},
+      {emoji:'😄', text:'Hold still and giggle.'},
+      {emoji:'🔁', text:'Music plays again. Dance more!'}
+    ],
+    timer:15
+  },
+  {
+    id:'wave',
+    className:'c4',
+    icon:'👋',
+    name:'Wave Hello',
+    tag:'Name Game',
+    detailIcon:'🙋‍♀️🙋‍♂️',
+    color:'#A78BFA',
+    steps:[
+      {emoji:'🙋', text:'One friend stands up and waves.'},
+      {emoji:'🗣️', text:'They say their name: "Hi, I am Sam!"'},
+      {emoji:'👋', text:'Everyone waves back and says "Hi, Sam!"'},
+      {emoji:'🎭', text:'Friend does a funny action, like a jump.'},
+      {emoji:'🔁', text:'Everyone copies the action, then next friend goes.'}
+    ],
+    timer:0
+  },
+  {
+    id:'weather',
+    className:'c5',
+    icon:'🌦️',
+    name:'Weather Bodies',
+    tag:'Move Like Weather',
+    detailIcon:'☀️🌧️💨',
+    color:'#FFA94D',
+    steps:[
+      {emoji:'☀️', text:'Say "Sun!" — everyone stretches up tall and bright.'},
+      {emoji:'🌧️', text:'Say "Rain!" — wiggle fingers falling down.'},
+      {emoji:'💨', text:'Say "Wind!" — sway your body side to side.'},
+      {emoji:'⛈️', text:'Say "Storm!" — stomp feet and clap loud!'},
+      {emoji:'🔁', text:'Mix up the words — go fast, go slow!'}
+    ],
+    timer:0
+  },
+  {
+    id:'balloon',
+    className:'c6',
+    icon:'🎈',
+    name:'Pass the Balloon',
+    tag:'Circle Clap',
+    detailIcon:'🎈🙌',
+    color:'#FF8FAB',
+    steps:[
+      {emoji:'⭕', text:'Sit together in a circle.'},
+      {emoji:'🎈', text:'Pretend to hold a soft balloon.'},
+      {emoji:'👉', text:'Gently pass it to the friend next to you.'},
+      {emoji:'👏', text:'When the balloon comes to you, clap once!'},
+      {emoji:'🔁', text:'Keep passing it all around the circle.'}
+    ],
+    timer:0
+  }
+];
+
+/* ===================== RENDER HOME CARDS ===================== */
+const grid = document.getElementById('cardGrid');
+activities.forEach(a=>{
+  const card = document.createElement('div');
+  card.className = 'card ' + a.className;
+  card.tabIndex = 0;
+  card.setAttribute('role','button');
+  card.setAttribute('aria-label', a.name);
+  card.innerHTML = `
+    <span class="icon">${a.icon}</span>
+    <h2>${a.name}</h2>
+    <span class="tag">${a.tag}</span>
+  `;
+  card.onclick = ()=>openActivity(a.id);
+  card.onkeypress = (e)=>{ if(e.key==='Enter') openActivity(a.id); };
+  grid.appendChild(card);
+});
+
+const speeches = [
+  "Hi friends! Let's play!",
+  "Pick a game! 🎉",
+  "You can do it!",
+  "Games are fun!",
+  "Let's smile together! 😄"
+];
+let speechIndex = 0;
+setInterval(()=>{
+  speechIndex = (speechIndex+1) % speeches.length;
+  document.getElementById('speechBubble').textContent = speeches[speechIndex];
+}, 4000);
+
+/* ===================== DETAIL VIEW LOGIC ===================== */
+const homeEl = document.getElementById('home');
+const detailEl = document.getElementById('detail');
+const detailCard = document.getElementById('detailCard');
+let timerInterval = null;
+
+function buildDetailHTML(a){
+  const stepsHTML = a.steps.map((s,i)=>`
+    <div class="step">
+      <span class="num">${i+1}</span>
+      <span class="emoji">${s.emoji}</span>
+      <p>${s.text}</p>
+    </div>
+  `).join('');
+
+  let timerHTML = '';
+  if(a.timer > 0){
+    timerHTML = `
+      <div class="big-timer" id="bigTimer">${a.timer}</div>
+      <div class="go-banner" id="goBanner">GO! 🎉</div>
+      <div class="timer-wrap">
+        <button class="timer-btn" style="background:${a.color}" onclick="startTimer(${a.timer})">▶️ Start ${a.timer}s</button>
+        <button class="timer-btn" style="background:#999" onclick="resetTimer(${a.timer})">🔄 Reset</button>
+      </div>
+    `;
+  }
+
+  detailCard.innerHTML = `
+    <span class="detail-icon">${a.detailIcon}</span>
+    <h2 class="detail-title" style="color:${shade(a.color)}">${a.name}</h2>
+    <div class="steps">${stepsHTML}</div>
+    ${timerHTML}
+  `;
+}
+
+function shade(hex){
+  // just return the ink color for consistent readability, accent used elsewhere
+  return '#2B2540';
+}
+
+function openActivity(id){
+  const a = activities.find(x=>x.id===id);
+  if(!a) return;
+  clearInterval(timerInterval);
+  buildDetailHTML(a);
+  homeEl.classList.add('hidden');
+  detailEl.classList.add('active');
+  window.scrollTo({top:0, behavior:'smooth'});
+}
+
+function goHome(){
+  clearInterval(timerInterval);
+  detailEl.classList.remove('active');
+  homeEl.classList.remove('hidden');
+  window.scrollTo({top:0, behavior:'smooth'});
+}
+
+function startTimer(seconds){
+  clearInterval(timerInterval);
+  const timerEl = document.getElementById('bigTimer');
+  const goEl = document.getElementById('goBanner');
+  goEl.classList.remove('show');
+  let remaining = seconds;
+  timerEl.textContent = remaining;
+  timerEl.classList.add('show');
+  timerEl.style.color = 'var(--ink)';
+  timerInterval = setInterval(()=>{
+    remaining--;
+    if(remaining <= 0){
+      clearInterval(timerInterval);
+      timerEl.textContent = '0';
+      goEl.classList.add('show');
+    } else {
+      timerEl.textContent = remaining;
+    }
+  }, 1000);
+}
+
+function resetTimer(seconds){
+  clearInterval(timerInterval);
+  const timerEl = document.getElementById('bigTimer');
+  const goEl = document.getElementById('goBanner');
+  if(timerEl){
+    timerEl.textContent = seconds;
+    timerEl.classList.remove('show');
+  }
+  if(goEl) goEl.classList.remove('show');
+}
+
+/* ===================== SHUFFLE / SURPRISE WHEEL ===================== */
+const overlay = document.getElementById('overlay');
+const overlayCard = document.getElementById('overlayCard');
+const shuffleBtn = document.getElementById('shuffleBtn');
+
+function spinWheel(){
+  shuffleBtn.classList.add('spinning');
+  shuffleBtn.disabled = true;
+  setTimeout(()=>{
+    shuffleBtn.classList.remove('spinning');
+    shuffleBtn.disabled = false;
+    const pick = activities[Math.floor(Math.random()*activities.length)];
+    showOverlay(pick);
+  }, 900);
+}
+
+function showOverlay(a){
+  overlayCard.innerHTML = `
+    <span class="icon">${a.icon}</span>
+    <h3>${a.name}</h3>
+    <div class="overlay-btn-row">
+      <button class="ov-btn ov-go" onclick="goToActivityFromOverlay('${a.id}')">Let's Go! ▶️</button>
+      <button class="ov-btn ov-again" onclick="spinAgain()">Spin Again 🎲</button>
+      <button class="ov-btn ov-close" onclick="closeOverlay()">Close ✖️</button>
+    </div>
+  `;
+  overlay.classList.add('show');
+}
+
+function spinAgain(){
+  overlay.classList.remove('show');
+  setTimeout(spinWheel, 200);
+}
+
+function goToActivityFromOverlay(id){
+  overlay.classList.remove('show');
+  openActivity(id);
+}
+
+function closeOverlay(){
+  overlay.classList.remove('show');
+}
+
+overlay.addEventListener('click', (e)=>{
+  if(e.target === overlay) closeOverlay();
+});
+</script>
+</body>
+</html>

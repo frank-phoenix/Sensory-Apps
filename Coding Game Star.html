@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Block Coding Fun</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Comic Sans MS', cursive, sans-serif;
+            background: linear-gradient(135deg, #87CEEB, #98FB98);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            height: calc(100vh - 40px);
+        }
+
+        .blocks-panel {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+            border: 4px solid #4169E1;
+        }
+
+        .stage-panel {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+            border: 4px solid #32CD32;
+            display: flex;
+            flex-direction: column;
+        }
+
+        h1 {
+            font-size: 36px;
+            color: #4169E1;
+            text-align: center;
+            margin-bottom: 30px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+        }
+
+        h2 {
+            font-size: 28px;
+            color: #333;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .block {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 200px;
+            height: 80px;
+            margin: 15px auto;
+            border-radius: 15px;
+            font-size: 24px;
+            font-weight: bold;
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 4px solid rgba(255,255,255,0.3);
+            user-select: none;
+        }
+
+        .block:hover {
+            transform: scale(1.1);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.3);
+        }
+
+        .move-up { background: #FF6B6B; }
+        .move-down { background: #4ECDC4; }
+        .move-left { background: #45B7D1; }
+        .move-right { background: #96CEB4; }
+        .change-color { background: #FECA57; }
+        .grow { background: #FF9FF3; }
+        .shrink { background: #54A0FF; }
+
+        .stage {
+            background: #F0F8FF;
+            border: 3px dashed #4169E1;
+            border-radius: 15px;
+            height: 400px;
+            position: relative;
+            margin: 20px 0;
+            overflow: hidden;
+        }
+
+        .character {
+            width: 80px;
+            height: 80px;
+            background: #FFD700;
+            border-radius: 50%;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            transition: all 0.8s ease;
+            border: 4px solid #FFA500;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 40px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+        }
+
+        .program-area {
+            background: #F9F9F9;
+            border: 3px dashed #666;
+            border-radius: 15px;
+            min-height: 120px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+
+        .program-block {
+            display: inline-block;
+            margin: 5px;
+            padding: 10px 20px;
+            border-radius: 10px;
+            font-size: 18px;
+            font-weight: bold;
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .program-block:hover {
+            transform: scale(1.05);
+        }
+
+        .controls {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            margin-top: 20px;
+        }
+
+        .btn {
+            padding: 15px 30px;
+            font-size: 24px;
+            font-weight: bold;
+            border: none;
+            border-radius: 15px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            color: white;
+        }
+
+        .btn:hover {
+            transform: scale(1.1);
+        }
+
+        .run-btn {
+            background: #2ECC71;
+        }
+
+        .clear-btn {
+            background: #E74C3C;
+        }
+
+        .emoji {
+            font-size: 32px;
+            margin-right: 10px;
+        }
+
+        .instructions {
+            background: #E8F4FD;
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 20px;
+            border: 3px solid #4169E1;
+        }
+
+        .instructions p {
+            font-size: 20px;
+            color: #333;
+            text-align: center;
+            margin: 10px 0;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
+            
+            .block {
+                width: 180px;
+                height: 70px;
+                font-size: 20px;
+            }
+            
+            h1 {
+                font-size: 28px;
+            }
+            
+            h2 {
+                font-size: 24px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="blocks-panel">
+            <h2>🧩 Code Blocks</h2>
+            
+            <div class="instructions">
+                <p>👆 Click blocks to add them</p>
+                <p>▶️ Click RUN to see magic!</p>
+            </div>
+
+            <div class="block move-up" onclick="addBlock('move-up', '⬆️ Move Up')">
+                <span class="emoji">⬆️</span> Move Up
+            </div>
+            
+            <div class="block move-down" onclick="addBlock('move-down', '⬇️ Move Down')">
+                <span class="emoji">⬇️</span> Move Down
+            </div>
+            
+            <div class="block move-left" onclick="addBlock('move-left', '⬅️ Move Left')">
+                <span class="emoji">⬅️</span> Move Left
+            </div>
+            
+            <div class="block move-right" onclick="addBlock('move-right', '➡️ Move Right')">
+                <span class="emoji">➡️</span> Move Right
+            </div>
+            
+            <div class="block change-color" onclick="addBlock('change-color', '🎨 Change Color')">
+                <span class="emoji">🎨</span> Change Color
+            </div>
+            
+            <div class="block grow" onclick="addBlock('grow', '🔍 Grow Big')">
+                <span class="emoji">🔍</span> Grow Big
+            </div>
+            
+            <div class="block shrink" onclick="addBlock('shrink', '🔎 Shrink Small')">
+                <span class="emoji">🔎</span> Shrink Small
+            </div>
+        </div>
+
+        <div class="stage-panel">
+            <h2>🎭 My Program</h2>
+            
+            <div class="program-area" id="programArea">
+                <p style="text-align: center; font-size: 20px; color: #666;">
+                    Click blocks to build your program! 👆
+                </p>
+            </div>
+            
+            <div class="controls">
+                <button class="btn run-btn" onclick="runProgram()">
+                    ▶️ RUN
+                </button>
+                <button class="btn clear-btn" onclick="clearProgram()">
+                    🗑️ CLEAR
+                </button>
+            </div>
+            
+            <div class="stage">
+                <div class="character" id="character">🌟</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let program = [];
+        let characterPosition = { x: 50, y: 50 };
+        let characterSize = 80;
+        let currentColor = '#FFD700';
+        let isRunning = false;
+
+        const colors = ['#FFD700', '#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FECA57', '#FF9FF3', '#54A0FF'];
+        let colorIndex = 0;
+
+        function addBlock(type, text) {
+            if (isRunning) return;
+            
+            program.push({ type, text });
+            updateProgramDisplay();
+            
+            // Visual feedback
+            const character = document.getElementById('character');
+            character.style.transform = `translate(-50%, -50%) scale(1.2)`;
+            setTimeout(() => {
+                character.style.transform = `translate(-50%, -50%) scale(1)`;
+            }, 200);
+        }
+
+        function updateProgramDisplay() {
+            const programArea = document.getElementById('programArea');
+            
+            if (program.length === 0) {
+                programArea.innerHTML = '<p style="text-align: center; font-size: 20px; color: #666;">Click blocks to build your program! 👆</p>';
+                return;
+            }
+            
+            programArea.innerHTML = '';
+            program.forEach((block, index) => {
+                const blockElement = document.createElement('div');
+                blockElement.className = `program-block ${block.type}`;
+                blockElement.innerHTML = block.text;
+                blockElement.onclick = () => removeBlock(index);
+                blockElement.title = 'Click to remove';
+                programArea.appendChild(blockElement);
+            });
+        }
+
+        function removeBlock(index) {
+            if (isRunning) return;
+            program.splice(index, 1);
+            updateProgramDisplay();
+        }
+
+        function clearProgram() {
+            if (isRunning) return;
+            program = [];
+            updateProgramDisplay();
+            resetCharacter();
+        }
+
+        function resetCharacter() {
+            characterPosition = { x: 50, y: 50 };
+            characterSize = 80;
+            currentColor = '#FFD700';
+            colorIndex = 0;
+            
+            const character = document.getElementById('character');
+            character.style.left = '50%';
+            character.style.top = '50%';
+            character.style.width = '80px';
+            character.style.height = '80px';
+            character.style.background = currentColor;
+            character.style.transform = 'translate(-50%, -50%)';
+        }
+
+        async function runProgram() {
+            if (program.length === 0 || isRunning) return;
+            
+            isRunning = true;
+            const character = document.getElementById('character');
+            
+            for (let i = 0; i < program.length; i++) {
+                const block = program[i];
+                
+                // Highlight current block
+                highlightCurrentBlock(i);
+                
+                switch (block.type) {
+                    case 'move-up':
+                        characterPosition.y = Math.max(10, characterPosition.y - 15);
+                        break;
+                    case 'move-down':
+                        characterPosition.y = Math.min(90, characterPosition.y + 15);
+                        break;
+                    case 'move-left':
+                        characterPosition.x = Math.max(10, characterPosition.x - 15);
+                        break;
+                    case 'move-right':
+                        characterPosition.x = Math.min(90, characterPosition.x + 15);
+                        break;
+                    case 'change-color':
+                        colorIndex = (colorIndex + 1) % colors.length;
+                        currentColor = colors[colorIndex];
+                        character.style.background = currentColor;
+                        break;
+                    case 'grow':
+                        characterSize = Math.min(120, characterSize + 20);
+                        character.style.width = characterSize + 'px';
+                        character.style.height = characterSize + 'px';
+                        break;
+                    case 'shrink':
+                        characterSize = Math.max(40, characterSize - 20);
+                        character.style.width = characterSize + 'px';
+                        character.style.height = characterSize + 'px';
+                        break;
+                }
+                
+                character.style.left = characterPosition.x + '%';
+                character.style.top = characterPosition.y + '%';
+                
+                await new Promise(resolve => setTimeout(resolve, 1000));
+            }
+            
+            // Clear highlighting
+            clearHighlight();
+            isRunning = false;
+        }
+
+        function highlightCurrentBlock(index) {
+            const programBlocks = document.querySelectorAll('.program-block');
+            programBlocks.forEach((block, i) => {
+                if (i === index) {
+                    block.style.border = '4px solid #FFD700';
+                    block.style.transform = 'scale(1.1)';
+                } else {
+                    block.style.border = 'none';
+                    block.style.transform = 'scale(1)';
+                }
+            });
+        }
+
+        function clearHighlight() {
+            const programBlocks = document.querySelectorAll('.program-block');
+            programBlocks.forEach(block => {
+                block.style.border = 'none';
+                block.style.transform = 'scale(1)';
+            });
+        }
+
+        // Initialize
+        resetCharacter();
+    </script>
+</body>
+</html>

@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Infinite Tree Meditation</title>
+  <style>
+    body {
+      margin: 0;
+      overflow: hidden;
+      font-family: sans-serif;
+    }
+    canvas {
+      display: block;
+    }
+    #controls {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      z-index: 10;
+    }
+    #restart, .effect-button {
+      padding: 10px 20px;
+      font-size: 14px;
+      margin: 5px;
+      background-color: #6fa8dc;
+      color: white;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+    }
+    #restart:hover, .effect-button:hover {
+      background-color: #3d85c6;
+    }
+    #bgColor {
+      width: 150px;
+      margin-top: 10px;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="treeCanvas"></canvas>
+  <div id="controls">
+    <button id="restart">Restart</button>
+    <div>
+      <label for="bgColor">Background:</label>
+      <input type="color" id="bgColor" value="#f0f8ff" />
+    </div>
+    <div>
+      <button class="effect-button" data-effect="rainbow">Rainbow</button>
+      <button class="effect-button" data-effect="glow">Glow</button>
+      <button class="effect-button" data-effect="pulse">Pulse</button>
+      <button class="effect-button" data-effect="wave">Wave</button>
+      <button class="effect-button" data-effect="leaves">Leaves</button>
+      <button class="effect-button" data-effect="spiral">Spiral</button>
+      <button class="effect-button" data-effect="autumn">Autumn</button>
+    </div>
+  </div>
+  <audio id="relaxMusic" autoplay loop>
+    <source src="https://cdn.pixabay.com/download/audio/2022/10/16/audio_785c3162b1.mp3?filename=calm-meditation-ambient-116199.mp3" type="audio/mpeg" />
+  </audio>
+
+  <script>
+    const canvas = document.getElementById("treeCanvas");
+    const ctx = canvas.getContext("2d");
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+
+    let allBranches = [];
+    let growthQueue = [];
+    let currentEffect = null;
+
+    class Branch {
+      constructor(x, y, length, angle, depth) {
+        this.x = x;
+        this.y = y;
+        this.length = length;
+        this.angle = angle;
+        this.depth = depth;
+        this.color = this.getColor();
+      }
+
+      getColor() {
+        if (currentEffect === "rainbow") {
+          return `hsl(${this.depth * 30 % 360}, 100%, 60%)`;
+        } else if (currentEffect === "glow") {
+          return `rgba(173,216,230,${1 - this.depth * 0.1})`;
+        } else if (currentEffect === "pulse") {
+          const time = Date.now() * 0.005;
+          return `hsl(${Math.sin(time + this.depth) * 60 + 180}, 70%, 60%)`;
+        } else if (currentEffect === "autumn") {
+          const colors = ["#FF7F50", "#FFD700", "#FF4500"];
+          return colors[this.depth % colors.length];
+        } else {
+          return `hsl(${Math.random() * 360}, 70%, 60%)`;
+        }
+      }
+
+      draw() {
+        const endX = this.x + Math.cos(this.angle) * this.length;
+        const endY = this.y + Math.sin(this.angle) * this.length;
+        ctx.strokeStyle = this.color;
+        ctx.lineWidth = Math.max(1, 6 - this.depth);
+        ctx.beginPath();
+        ctx.moveTo(this.x, this.y);
+        ctx.lineTo(endX, endY);
+        ctx.stroke();
+
+        if (this.length > 2) {
+          let offset = 0;
+          if (currentEffect === "spiral") offset = Math.sin(this.depth) * 0.2;
+          if (currentEffect === "wave") offset = Math.sin(this.depth + Date.now() * 0.005) * 0.3;
+
+          growthQueue.push(new Branch(endX, endY, this.length * 0.75, this.angle - 0.5 + offset, this.depth + 1));
+          growthQueue.push(new Branch(endX, endY, this.length * 0.75, this.angle + 0.5 + offset, this.depth + 1));
+
+          if ((currentEffect === "leaves" || currentEffect === "autumn") && this.depth > 4 && Math.random() > 0.7) {
+            drawLeaf(endX, endY);
+          }
+        }
+      }
+    }
+
+    function drawLeaf(x, y) {
+      if (currentEffect === "autumn") {
+        const autumnColors = ["#FF7F50", "#FFD700", "#FF4500"];
+        ctx.fillStyle = autumnColors[Math.floor(Math.random() * autumnColors.length)];
+      } else {
+        ctx.fillStyle = `hsl(${Math.random() * 360}, 80%, 60%)`;
+      }
+      ctx.beginPath();
+      ctx.arc(x, y, 5, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    function growOnce() {
+      const batch = growthQueue.splice(0, 5);
+      batch.forEach(branch => {
+        branch.draw();
+        allBranches.push(branch);
+      });
+    }
+
+    function initialTree() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      allBranches = [];
+      growthQueue = [];
+      const trunk = new Branch(canvas.width / 2, canvas.height, canvas.height * 0.25, -Math.PI / 2, 0);
+      trunk.draw();
+      allBranches.push(trunk);
+      growthQueue.push(trunk);
+    }
+
+    initialTree();
+
+    document.addEventListener("click", growOnce);
+    document.addEventListener("keydown", (e) => {
+      if (e.code === "Space") {
+        e.preventDefault();
+        growOnce();
+      }
+    });
+
+    document.getElementById("restart").addEventListener("click", () => {
+      location.reload();
+    });
+
+    window.addEventListener("resize", () => {
+      location.reload();
+    });
+
+    document.getElementById("bgColor").addEventListener("input", (e) => {
+      canvas.style.backgroundColor = e.target.value;
+    });
+
+    document.querySelectorAll(".effect-button").forEach(button => {
+      button.addEventListener("click", () => {
+        currentEffect = button.dataset.effect;
+      });
+    });
+  </script>
+</body>
+</html>

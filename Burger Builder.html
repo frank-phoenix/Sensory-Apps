@@ -1,0 +1,651 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Burger Builder</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #87CEEB 0%, #98FB98 100%);
+            min-height: 100vh;
+            padding: 20px;
+            user-select: none;
+        }
+
+        .app-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(45deg, #FF6B6B, #4ECDC4);
+            color: white;
+            text-align: center;
+            padding: 30px;
+            font-size: 48px;
+            font-weight: bold;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .main-content {
+            display: flex;
+            min-height: 800px;
+        }
+
+        .ingredients-panel {
+            width: 400px;
+            background: #F8F9FA;
+            padding: 30px;
+            border-right: 3px solid #ddd;
+            overflow-y: auto;
+        }
+
+        .ingredients-title {
+            font-size: 32px;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 30px;
+            text-align: center;
+            background: #E9ECEF;
+            padding: 20px;
+            border-radius: 15px;
+        }
+
+        .ingredient-category {
+            margin-bottom: 40px;
+        }
+
+        .category-title {
+            font-size: 24px;
+            font-weight: bold;
+            color: #495057;
+            margin-bottom: 20px;
+            padding: 15px;
+            background: #DEE2E6;
+            border-radius: 10px;
+            text-align: center;
+        }
+
+        .ingredients-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
+        .ingredient {
+            background: white;
+            border: 4px solid #007BFF;
+            border-radius: 15px;
+            padding: 20px;
+            text-align: center;
+            cursor: grab;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            min-height: 120px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .ingredient:hover {
+            transform: scale(1.05);
+            box-shadow: 0 6px 15px rgba(0,0,0,0.2);
+            border-color: #0056b3;
+        }
+
+        .ingredient:active {
+            cursor: grabbing;
+            transform: scale(0.95);
+        }
+
+        .ingredient-icon {
+            font-size: 40px;
+            margin-bottom: 10px;
+            display: block;
+        }
+
+        .ingredient-name {
+            font-size: 18px;
+            font-weight: bold;
+            color: #333;
+            word-wrap: break-word;
+        }
+
+        .burger-area {
+            flex: 1;
+            padding: 30px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background: white;
+        }
+
+        .burger-title {
+            font-size: 32px;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 30px;
+            text-align: center;
+            background: #F8F9FA;
+            padding: 20px;
+            border-radius: 15px;
+            width: 100%;
+        }
+
+        .burger-builder {
+            background: #FFF8DC;
+            border: 6px dashed #DDD;
+            border-radius: 20px;
+            min-height: 500px;
+            width: 400px;
+            padding: 30px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            position: relative;
+            box-shadow: inset 0 0 20px rgba(0,0,0,0.1);
+        }
+
+        .burger-builder.drag-over {
+            border-color: #28A745;
+            background: #F8FFF8;
+            transform: scale(1.02);
+        }
+
+        .burger-stack {
+            display: flex;
+            flex-direction: column-reverse;
+            align-items: center;
+            gap: 5px;
+            min-height: 400px;
+            width: 100%;
+            justify-content: flex-end;
+        }
+
+        .burger-layer {
+            width: 300px;
+            height: 40px;
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            font-weight: bold;
+            color: white;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            border: 3px solid rgba(0,0,0,0.2);
+        }
+
+        .burger-layer:hover {
+            transform: scale(1.05);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+        }
+
+        .remove-btn {
+            position: absolute;
+            right: 10px;
+            background: #DC3545;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            font-size: 16px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        .remove-btn:hover {
+            background: #C82333;
+        }
+
+        .controls {
+            margin-top: 30px;
+            display: flex;
+            gap: 20px;
+        }
+
+        .control-btn {
+            background: #007BFF;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            font-size: 20px;
+            font-weight: bold;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+
+        .control-btn:hover {
+            background: #0056b3;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(0,0,0,0.3);
+        }
+
+        .control-btn.clear {
+            background: #DC3545;
+        }
+
+        .control-btn.clear:hover {
+            background: #C82333;
+        }
+
+        .color-picker {
+            margin-top: 20px;
+            text-align: center;
+        }
+
+        .color-picker label {
+            font-size: 18px;
+            font-weight: bold;
+            color: #333;
+            margin-right: 15px;
+        }
+
+        .color-picker input[type="color"] {
+            width: 60px;
+            height: 60px;
+            border: 4px solid #007BFF;
+            border-radius: 10px;
+            cursor: pointer;
+        }
+
+        .drop-hint {
+            font-size: 24px;
+            color: #6C757D;
+            text-align: center;
+            margin-top: 50px;
+            padding: 30px;
+            border: 3px dashed #CCC;
+            border-radius: 15px;
+            background: #F8F9FA;
+        }
+
+        @media (max-width: 1200px) {
+            .main-content {
+                flex-direction: column;
+            }
+            
+            .ingredients-panel {
+                width: 100%;
+                border-right: none;
+                border-bottom: 3px solid #ddd;
+            }
+            
+            .ingredients-grid {
+                grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            }
+        }
+
+        @media (max-width: 768px) {
+            .header {
+                font-size: 36px;
+                padding: 20px;
+            }
+            
+            .burger-builder {
+                width: 100%;
+                max-width: 350px;
+            }
+            
+            .burger-layer {
+                width: 250px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <div class="header">
+            🍔 BURGER BUILDER 🍔
+        </div>
+        
+        <div class="main-content">
+            <div class="ingredients-panel">
+                <div class="ingredients-title">
+                    🥘 INGREDIENTS
+                </div>
+                
+                <div class="ingredient-category">
+                    <div class="category-title">🍞 BUNS</div>
+                    <div class="ingredients-grid">
+                        <div class="ingredient" draggable="true" data-type="bun-top" data-color="#DEB887">
+                            <span class="ingredient-icon">🍞</span>
+                            <span class="ingredient-name">Top Bun</span>
+                        </div>
+                        <div class="ingredient" draggable="true" data-type="bun-bottom" data-color="#DEB887">
+                            <span class="ingredient-icon">🍞</span>
+                            <span class="ingredient-name">Bottom Bun</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="ingredient-category">
+                    <div class="category-title">🥩 PROTEINS</div>
+                    <div class="ingredients-grid">
+                        <div class="ingredient" draggable="true" data-type="beef" data-color="#8B4513">
+                            <span class="ingredient-icon">🥩</span>
+                            <span class="ingredient-name">Beef Patty</span>
+                        </div>
+                        <div class="ingredient" draggable="true" data-type="chicken" data-color="#DDD">
+                            <span class="ingredient-icon">🍗</span>
+                            <span class="ingredient-name">Chicken</span>
+                        </div>
+                        <div class="ingredient" draggable="true" data-type="bacon" data-color="#D2691E">
+                            <span class="ingredient-icon">🥓</span>
+                            <span class="ingredient-name">Bacon</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="ingredient-category">
+                    <div class="category-title">🧀 CHEESE</div>
+                    <div class="ingredients-grid">
+                        <div class="ingredient" draggable="true" data-type="cheese" data-color="#FFD700">
+                            <span class="ingredient-icon">🧀</span>
+                            <span class="ingredient-name">Cheese</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="ingredient-category">
+                    <div class="category-title">🥬 VEGETABLES</div>
+                    <div class="ingredients-grid">
+                        <div class="ingredient" draggable="true" data-type="lettuce" data-color="#90EE90">
+                            <span class="ingredient-icon">🥬</span>
+                            <span class="ingredient-name">Lettuce</span>
+                        </div>
+                        <div class="ingredient" draggable="true" data-type="tomato" data-color="#FF6347">
+                            <span class="ingredient-icon">🍅</span>
+                            <span class="ingredient-name">Tomato</span>
+                        </div>
+                        <div class="ingredient" draggable="true" data-type="onion" data-color="#F5DEB3">
+                            <span class="ingredient-icon">🧅</span>
+                            <span class="ingredient-name">Onion</span>
+                        </div>
+                        <div class="ingredient" draggable="true" data-type="pickles" data-color="#9ACD32">
+                            <span class="ingredient-icon">🥒</span>
+                            <span class="ingredient-name">Pickles</span>
+                        </div>
+                        <div class="ingredient" draggable="true" data-type="mushrooms" data-color="#D2B48C">
+                            <span class="ingredient-icon">🍄</span>
+                            <span class="ingredient-name">Mushrooms</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="ingredient-category">
+                    <div class="category-title">🥫 SAUCES</div>
+                    <div class="ingredients-grid">
+                        <div class="ingredient" draggable="true" data-type="ketchup" data-color="#DC143C">
+                            <span class="ingredient-icon">🍅</span>
+                            <span class="ingredient-name">Ketchup</span>
+                        </div>
+                        <div class="ingredient" draggable="true" data-type="mustard" data-color="#FFDB58">
+                            <span class="ingredient-icon">🟡</span>
+                            <span class="ingredient-name">Mustard</span>
+                        </div>
+                        <div class="ingredient" draggable="true" data-type="bbq" data-color="#8B4513">
+                            <span class="ingredient-icon">🍖</span>
+                            <span class="ingredient-name">BBQ Sauce</span>
+                        </div>
+                        <div class="ingredient" draggable="true" data-type="mayo" data-color="#F5F5DC">
+                            <span class="ingredient-icon">⚪</span>
+                            <span class="ingredient-name">Mayo</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="burger-area">
+                <div class="burger-title">
+                    🍔 BUILD YOUR BURGER
+                </div>
+                
+                <div class="burger-builder" id="burgerBuilder">
+                    <div class="burger-stack" id="burgerStack">
+                        <div class="drop-hint">
+                            Drag ingredients here to build your burger!<br>
+                            👆 Click ingredients or drag them here 👆
+                        </div>
+                    </div>
+                </div>
+
+                <div class="color-picker">
+                    <label for="colorPicker">🎨 Change Color:</label>
+                    <input type="color" id="colorPicker" value="#FFD700">
+                </div>
+
+                <div class="controls">
+                    <button class="control-btn clear" onclick="clearBurger()">
+                        🗑️ Clear All
+                    </button>
+                    <button class="control-btn" onclick="randomBurger()">
+                        🎲 Random Burger
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let burgerLayers = [];
+        let draggedElement = null;
+        let selectedLayer = null;
+
+        // Initialize drag and drop
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeDragAndDrop();
+            initializeClickToAdd();
+        });
+
+        function initializeDragAndDrop() {
+            const ingredients = document.querySelectorAll('.ingredient');
+            const burgerBuilder = document.getElementById('burgerBuilder');
+
+            ingredients.forEach(ingredient => {
+                ingredient.addEventListener('dragstart', handleDragStart);
+                ingredient.addEventListener('dragend', handleDragEnd);
+            });
+
+            burgerBuilder.addEventListener('dragover', handleDragOver);
+            burgerBuilder.addEventListener('drop', handleDrop);
+            burgerBuilder.addEventListener('dragenter', handleDragEnter);
+            burgerBuilder.addEventListener('dragleave', handleDragLeave);
+        }
+
+        function initializeClickToAdd() {
+            const ingredients = document.querySelectorAll('.ingredient');
+            ingredients.forEach(ingredient => {
+                ingredient.addEventListener('click', function() {
+                    const type = this.dataset.type;
+                    const color = this.dataset.color;
+                    const name = this.querySelector('.ingredient-name').textContent;
+                    addIngredient(type, color, name);
+                });
+            });
+        }
+
+        function handleDragStart(e) {
+            draggedElement = this;
+            this.style.opacity = '0.5';
+            e.dataTransfer.effectAllowed = 'copy';
+        }
+
+        function handleDragEnd(e) {
+            this.style.opacity = '1';
+            draggedElement = null;
+        }
+
+        function handleDragOver(e) {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'copy';
+        }
+
+        function handleDragEnter(e) {
+            e.preventDefault();
+            this.classList.add('drag-over');
+        }
+
+        function handleDragLeave(e) {
+            if (!this.contains(e.relatedTarget)) {
+                this.classList.remove('drag-over');
+            }
+        }
+
+        function handleDrop(e) {
+            e.preventDefault();
+            this.classList.remove('drag-over');
+            
+            if (draggedElement) {
+                const type = draggedElement.dataset.type;
+                const color = draggedElement.dataset.color;
+                const name = draggedElement.querySelector('.ingredient-name').textContent;
+                addIngredient(type, color, name);
+            }
+        }
+
+        function addIngredient(type, color, name) {
+            const burgerStack = document.getElementById('burgerStack');
+            const dropHint = burgerStack.querySelector('.drop-hint');
+            
+            if (dropHint) {
+                dropHint.remove();
+            }
+
+            const layer = document.createElement('div');
+            layer.className = 'burger-layer';
+            layer.style.backgroundColor = color;
+            layer.innerHTML = `
+                ${name}
+                <button class="remove-btn" onclick="removeLayer(this)">×</button>
+            `;
+            
+            layer.addEventListener('click', function() {
+                selectLayer(this);
+            });
+
+            burgerStack.appendChild(layer);
+            burgerLayers.push({type, color, name, element: layer});
+
+            // Add visual feedback
+            layer.style.transform = 'scale(1.1)';
+            setTimeout(() => {
+                layer.style.transform = 'scale(1)';
+            }, 200);
+        }
+
+        function removeLayer(button) {
+            const layer = button.parentElement;
+            const index = burgerLayers.findIndex(l => l.element === layer);
+            
+            if (index > -1) {
+                burgerLayers.splice(index, 1);
+                layer.remove();
+                
+                if (burgerLayers.length === 0) {
+                    showDropHint();
+                }
+            }
+        }
+
+        function selectLayer(layer) {
+            // Remove previous selection
+            document.querySelectorAll('.burger-layer').forEach(l => {
+                l.style.border = '3px solid rgba(0,0,0,0.2)';
+            });
+            
+            // Select current layer
+            layer.style.border = '3px solid #007BFF';
+            selectedLayer = layer;
+        }
+
+        function clearBurger() {
+            const burgerStack = document.getElementById('burgerStack');
+            burgerStack.innerHTML = '';
+            burgerLayers = [];
+            selectedLayer = null;
+            showDropHint();
+        }
+
+        function showDropHint() {
+            const burgerStack = document.getElementById('burgerStack');
+            const dropHint = document.createElement('div');
+            dropHint.className = 'drop-hint';
+            dropHint.innerHTML = 'Drag ingredients here to build your burger!<br>👆 Click ingredients or drag them here 👆';
+            burgerStack.appendChild(dropHint);
+        }
+
+        function randomBurger() {
+            clearBurger();
+            
+            const ingredients = [
+                {type: 'bun-bottom', color: '#DEB887', name: 'Bottom Bun'},
+                {type: 'beef', color: '#8B4513', name: 'Beef Patty'},
+                {type: 'cheese', color: '#FFD700', name: 'Cheese'},
+                {type: 'lettuce', color: '#90EE90', name: 'Lettuce'},
+                {type: 'tomato', color: '#FF6347', name: 'Tomato'},
+                {type: 'ketchup', color: '#DC143C', name: 'Ketchup'},
+                {type: 'bun-top', color: '#DEB887', name: 'Top Bun'}
+            ];
+
+            ingredients.forEach((ingredient, index) => {
+                setTimeout(() => {
+                    addIngredient(ingredient.type, ingredient.color, ingredient.name);
+                }, index * 300);
+            });
+        }
+
+        // Color picker functionality
+        document.getElementById('colorPicker').addEventListener('change', function() {
+            if (selectedLayer) {
+                selectedLayer.style.backgroundColor = this.value;
+                const index = burgerLayers.findIndex(l => l.element === selectedLayer);
+                if (index > -1) {
+                    burgerLayers[index].color = this.value;
+                }
+            }
+        });
+
+        // Keyboard accessibility
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Delete' && selectedLayer) {
+                const removeBtn = selectedLayer.querySelector('.remove-btn');
+                if (removeBtn) {
+                    removeBtn.click();
+                }
+            }
+        });
+
+        // Touch events for mobile
+        document.addEventListener('touchstart', function(e) {
+            if (e.target.classList.contains('ingredient')) {
+                e.target.style.transform = 'scale(0.95)';
+            }
+        });
+
+        document.addEventListener('touchend', function(e) {
+            if (e.target.classList.contains('ingredient')) {
+                e.target.style.transform = 'scale(1)';
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Sensory Arcade - 5 Mini Games</title>
+<style>
+  html,body{margin:0;height:100%;overflow:hidden;background:#101522;color:#fff;font-family:Arial,sans-serif;touch-action:manipulation}
+  #wrap{height:100%;display:flex;flex-direction:column}
+  #top{height:68px;display:flex;align-items:center;justify-content:space-between;padding:0 16px;background:#182033;border-bottom:2px solid #303d5b;box-sizing:border-box}
+  #title{font-weight:800;font-size:24px;letter-spacing:.5px}
+  #status{font-size:18px;font-weight:700;color:#dce8ff}
+  canvas{display:block;flex:1;width:100%;height:calc(100% - 68px);background:radial-gradient(circle at 50% 35%,#273a62,#101522 72%)}
+  #controls{position:fixed;left:0;right:0;bottom:12px;display:flex;justify-content:center;gap:14px;pointer-events:none}
+  .btn{pointer-events:auto;border:0;border-radius:22px;padding:14px 22px;min-width:88px;font-size:22px;font-weight:800;background:#edf3ff;color:#111827;box-shadow:0 5px 0 #9ba9c0;cursor:pointer;touch-action:manipulation}
+  .btn:active{transform:translateY(4px);box-shadow:0 1px 0 #9ba9c0}
+  #home{position:fixed;top:10px;right:12px;display:none}
+  @media(max-width:700px){#title{font-size:18px}#status{font-size:14px}.btn{font-size:18px;padding:12px 18px;min-width:72px}}
+</style>
+</head>
+<body>
+<div id="wrap">
+  <div id="top"><div id="title">SENSORY ARCADE</div><div id="status">Choose a game</div></div>
+  <canvas id="game"></canvas>
+</div>
+<button id="home" class="btn">HOME</button>
+<div id="controls"></div>
+
+<script>
+(() => {
+const canvas=document.getElementById('game'), ctx=canvas.getContext('2d');
+const status=document.getElementById('status'), controls=document.getElementById('controls'), home=document.getElementById('home');
+let W,H,DPR, scene='menu', game=null, score=0, start=0, raf, particles=[], flashes=[];
+const audioCtx = window.AudioContext ? new AudioContext() : null;
+
+function resize(){
+  DPR=Math.min(devicePixelRatio||1,2);
+  const r=canvas.getBoundingClientRect(); W=r.width; H=r.height;
+  canvas.width=W*DPR; canvas.height=H*DPR; ctx.setTransform(DPR,0,0,DPR,0,0);
+}
+addEventListener('resize',resize); resize();
+
+function sound(type='good'){
+ if(!audioCtx) return;
+ if(audioCtx.state==='suspended') audioCtx.resume();
+ const o=audioCtx.createOscillator(), g=audioCtx.createGain();
+ o.connect(g); g.connect(audioCtx.destination);
+ const now=audioCtx.currentTime;
+ const f=type==='good'?660:type==='win'?880:type==='bad'?180:420;
+ o.frequency.setValueAtTime(f,now); o.frequency.exponentialRampToValueAtTime(type==='win'?1760:f*.75,now+.22);
+ g.gain.setValueAtTime(.001,now); g.gain.exponentialRampToValueAtTime(.18,now+.02); g.gain.exponentialRampToValueAtTime(.001,now+.25);
+ o.start(now);o.stop(now+.27);
+}
+function clearControls(){controls.innerHTML=''}
+function button(label, fn){const b=document.createElement('button');b.className='btn';b.textContent=label;b.onclick=()=>{sound('tap');fn()};controls.appendChild(b);return b}
+function hit(x,y,r,px,py){return Math.hypot(x-px,y-py)<=r}
+function rand(a,b){return a+Math.random()*(b-a)}
+function confetti(x=W/2,y=H/2,n=60){
+ for(let i=0;i<n;i++)particles.push({x,y,vx:rand(-7,7),vy:rand(-10,-2),life:rand(40,100),s:rand(5,13),h:Math.random()*360});
+}
+function sparkle(x,y,n=18){for(let i=0;i<n;i++)particles.push({x,y,vx:rand(-3,3),vy:rand(-4,3),life:rand(15,35),s:rand(3,8),h:rand(40,220)})}
+function updateFX(){
+ ctx.fillStyle='rgba(0,0,0,.13)';ctx.fillRect(0,0,W,H);
+ particles.forEach(p=>{p.x+=p.vx;p.y+=p.vy;p.vy+=.18;p.life--;ctx.fillStyle=`hsla(${p.h},90%,65%,${Math.max(0,p.life/80)})`;ctx.fillRect(p.x,p.y,p.s,p.s)});
+ particles=particles.filter(p=>p.life>0);
+}
+function circle(x,y,r,c){ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);ctx.fillStyle=c;ctx.fill()}
+function rounded(x,y,w,h,r,c){ctx.beginPath();ctx.roundRect(x,y,w,h,r);ctx.fillStyle=c;ctx.fill()}
+function text(t,x,y,size=30,c='#fff',align='center'){ctx.fillStyle=c;ctx.font=`800 ${size}px Arial`;ctx.textAlign=align;ctx.textBaseline='middle';ctx.fillText(t,x,y)}
+function setStatus(t){status.textContent=t}
+function finish(title, subtitle=''){
+ scene='finish'; clearControls(); home.style.display='none'; confetti(W/2,H*.35,120); sound('win');
+ button('PLAY AGAIN',()=>startGame(game));
+ button('HOME',()=>showMenu());
+ renderFinish=()=>{ctx.clearRect(0,0,W,H);ctx.fillStyle='#111827';ctx.fillRect(0,0,W,H); updateFX(); text('★  '+title+'  ★',W/2,H*.35,Math.min(54,W/10),'#fff');text(subtitle,W/2,H*.48,26,'#c8d8ff')};
+ loop();
+}
+function showMenu(){
+ scene='menu';game=null;clearControls();home.style.display='none';setStatus('Choose a game');
+ button('START',()=>startGame('burst'));
+ loop();
+}
+const games=[
+ ['BURST','Pop the big glowing targets','burst'],
+ ['CATCH','Catch the moving shape','catch'],
+ ['BEAT','Copy the flashing pattern','beat'],
+ ['RACE','Move the rocket to the finish','race'],
+ ['DROP','Drop balls into the target','drop']
+];
+
+function drawMenu(){
+ ctx.clearRect(0,0,W,H);
+ const cols=W<650?1:2, cardW=Math.min(430,(W-70)/(cols)), cardH=H<600?78:110;
+ games.forEach((g,i)=>{
+  const col=i%cols,row=Math.floor(i/cols);
+  const totalRows=Math.ceil(games.length/cols), baseY=(H-totalRows*(cardH+18))/2;
+  const x=(W-(cols*cardW+(cols-1)*24))/2+col*(cardW+24), y=baseY+row*(cardH+18);
+  rounded(x,y,cardW,cardH,24,['#2d6cdf','#7c3aed','#c026d3','#0891b2','#d97706'][i]);
+  text(g[0],x+cardW/2,y+cardH*.38,28); text('●',x+35,y+cardH*.75,18,'#fff','center'); text('TAP',x+cardW-45,y+cardH*.75,15,'#e8efff');
+  menuHitboxes.push({x,y,w:cardW,h:cardH,id:g[2]});
+ });
+ text('SENSORY ARCADE',W/2,50,Math.min(40,W/12));
+ text('Tap a game',W/2,H-45,20,'#cbd5e1');
+}
+let menuHitboxes=[];
+
+function startGame(id){
+ game=id;scene='play';score=0;start=performance.now();particles=[];clearControls();home.style.display='block';
+ if(id==='burst') initBurst();
+ if(id==='catch') initCatch();
+ if(id==='beat') initBeat();
+ if(id==='race') initRace();
+ if(id==='drop') initDrop();
+ loop();
+}
+
+let burst, catcher, beat, race, drop;
+function initBurst(){burst={target:{x:W/2,y:H/2,r:55},count:0,max:8}}
+function initCatch(){catcher={x:W/2,y:H/2,vx:3.3,vy:2.6,r:42,count:0,max:6}}
+function initBeat(){beat={seq:[],input:[],showing:true,index:0,level:1,showUntil:performance.now()+600,nextFlash:0,flash:-1};
+ beat.seq=[Math.floor(Math.random()*4)];}
+function initRace(){race={x:W*.12,y:H*.72,progress:0,time:15,started:performance.now(),finish:W*.88};button('LEFT',()=>moveRace(-1));button('GO',()=>moveRace(1));button('RIGHT',()=>moveRace(1))}
+function moveRace(dir){if(scene!=='play')return;race.progress=Math.max(0,Math.min(1,race.progress+.12));race.x=W*(.12+.76*race.progress);sound('good');sparkle(race.x,race.y);if(race.progress>=1)finish('ROCKET FINISHED!','Great turn!')}
+function initDrop(){drop={balls:6,placed:0,ballsArr:[]};for(let i=0;i<6;i++)drop.ballsArr.push({x:W*.2+i*(W*.6/5),y:H*.2,r:26,done:false})}
+
+function renderBurst(){
+ ctx.clearRect(0,0,W,H); const t=burst.target;
+ circle(t.x,t.y,t.r+18,'rgba(255,255,255,.08)');circle(t.x,t.y,t.r,['#ff3b7a','#ffb703','#38bdf8','#8b5cf6'][burst.count%4]);
+ circle(t.x,t.y,t.r*.55,'rgba(255,255,255,.28)');
+ text('TAP',t.x,t.y,22);
+ text(`${burst.count+1} / ${burst.max}`,W/2,50,24,'#dbeafe');
+}
+function tapBurst(x,y){let t=burst.target;if(hit(t.x,t.y,t.r+20,x,y)){burst.count++;sound('good');sparkle(t.x,t.y,25);if(burst.count>=burst.max){finish('TARGET MASTER!','You popped them all!');return}t.r=rand(38,72);t.x=rand(t.r+20,W-t.r-20);t.y=rand(100+t.r,H-t.r-35)}else sound('bad')}
+
+function renderCatch(){
+ ctx.clearRect(0,0,W,H);const c=catcher;
+ c.x+=c.vx;c.y+=c.vy;if(c.x<c.r||c.x>W-c.r)c.vx*=-1;if(c.y<c.r+50||c.y>H-c.r)c.vy*=-1;
+ circle(c.x,c.y,c.r,'#22c55e');circle(c.x-12,c.y-10,c.r*.35,'rgba(255,255,255,.3)');
+ text('CATCH ME',W/2,45,24,'#dbeafe');text(`${c.count} / ${c.max}`,W/2,78,20);
+}
+function tapCatch(x,y){let c=catcher;if(hit(c.x,c.y,c.r+15,x,y)){c.count++;sound('good');sparkle(c.x,c.y,30);c.vx*=1.12;c.vy*=1.12;if(c.count>=c.max)finish('GREAT CATCHING!','Fast hands!')}}
+
+function renderBeat(){
+ ctx.clearRect(0,0,W,H);const cx=W/2,cy=H*.52,sz=Math.min(W*.22,130),gap=20;
+ const now=performance.now();
+ if(beat.showing){
+   const elapsed=now-beat.showUntil;
+   if(now>beat.showUntil && beat.index<beat.seq.length){
+     beat.flash=beat.seq[beat.index++]; beat.showUntil=now+550; sound('good');
+   } else if(beat.index>=beat.seq.length && now>beat.showUntil+250){beat.showing=false;beat.flash=-1;}
+ }
+ const pos=[[cx-sz/2-gap,cy-sz/2-gap],[cx+sz/2+gap,cy-sz/2-gap],[cx-sz/2-gap,cy+sz/2+gap],[cx+sz/2+gap,cy+sz/2+gap]];
+ const colors=['#ef4444','#3b82f6','#22c55e','#f59e0b'];
+ pos.forEach((p,i)=>{circle(p[0],p[1],sz*.48,i===beat.flash?'#fff':colors[i]); if(i===beat.flash)circle(p[0],p[1],sz*.33,colors[i])});
+ text(beat.showing?'WATCH':'YOUR TURN',W/2,70,28);text(`LEVEL ${beat.level}`,W/2,H-35,20,'#dbeafe');
+ beat.pos=pos;
+}
+function tapBeat(x,y){
+ if(beat.showing)return;
+ for(let i=0;i<4;i++)if(hit(beat.pos[i][0],beat.pos[i][1],Math.min(W*.22,130)*.55,x,y)){
+  beat.flash=i;setTimeout(()=>beat.flash=-1,120);sound('tap');
+  if(i===beat.seq[beat.input.length]){beat.input.push(i);sparkle(beat.pos[i][0],beat.pos[i][1],12);
+   if(beat.input.length===beat.seq.length){
+    sound('win');beat.level++;
+    if(beat.level>5){finish('MEMORY STAR!','You copied five patterns!');return}
+    beat.seq.push(Math.floor(Math.random()*4));beat.input=[];beat.showing=true;beat.index=0;beat.showUntil=performance.now()+600;
+   }
+  }else{sound('bad');beat.input=[];beat.showing=true;beat.index=0;beat.showUntil=performance.now()+500}
+ }
+}
+
+function renderRace(){
+ ctx.clearRect(0,0,W,H);
+ ctx.strokeStyle='#64748b';ctx.lineWidth=10;ctx.beginPath();ctx.moveTo(W*.12,H*.72);ctx.lineTo(W*.88,H*.72);ctx.stroke();
+ text('START',W*.12,H*.82,18);text('FINISH ★',W*.88,H*.82,18,'#facc15');
+ text('MAKE THE ROCKET GO!',W/2,65,26);text(`${Math.ceil(Math.max(0,race.time-(performance.now()-race.started)/1000))} sec`,W/2,100,22,'#dbeafe');
+ ctx.save();ctx.translate(race.x,race.y);ctx.rotate(Math.PI/2);ctx.fillStyle='#e2e8f0';ctx.beginPath();ctx.moveTo(0,-35);ctx.lineTo(20,28);ctx.lineTo(0,18);ctx.lineTo(-20,28);ctx.closePath();ctx.fill();ctx.restore();
+ if((performance.now()-race.started)/1000>race.time)finish('TIME!', 'Try the rocket again!')
+}
+
+function renderDrop(){
+ ctx.clearRect(0,0,W,H);
+ rounded(W*.35,H*.68,W*.3,H*.16,18,'#16a34a');text('DROP HERE',W/2,H*.76,22);
+ drop.ballsArr.forEach((b,i)=>{if(!b.done){circle(b.x,b.y,b.r,['#f43f5e','#38bdf8','#a855f7','#facc15','#22c55e','#fb7185'][i]);text('●',b.x,b.y,20)}});
+ text(`${drop.placed} / 6`,W/2,55,26,'#dbeafe');text('TAP A BALL',W/2,95,20);
+}
+function tapDrop(x,y){
+ for(const b of drop.ballsArr)if(!b.done&&hit(b.x,b.y,b.r+18,x,y)){
+   b.done=true;drop.placed++;sound('good');sparkle(W/2,H*.75,25);confetti(W/2,H*.75,10);
+   if(drop.placed>=6)setTimeout(()=>finish('ALL DROPPED!','Fantastic turn!'),250);
+ }
+}
+
+function pointer(e){
+ const r=canvas.getBoundingClientRect(),x=(e.clientX-r.left),y=(e.clientY-r.top);
+ if(scene==='menu'){for(const b of menuHitboxes)if(x>=b.x&&x<=b.x+b.w&&y>=b.y&&y<=b.y+b.h){startGame(b.id);return}}
+ if(scene==='play'){
+  if(game==='burst')tapBurst(x,y);if(game==='catch')tapCatch(x,y);if(game==='beat')tapBeat(x,y);if(game==='drop')tapDrop(x,y);
+ }
+}
+canvas.addEventListener('pointerdown',pointer);
+document.addEventListener('keydown',e=>{
+ if(e.code==='CapsLock'||e.code==='Space'||e.code==='Enter'||e.code==='ArrowLeft'||e.code==='ArrowRight'){
+   e.preventDefault();
+   if(scene==='menu')startGame('burst');
+   else if(game==='race')moveRace(1);
+   else if(scene==='play'){
+    if(game==='burst')tapBurst(burst.target.x,burst.target.y);
+    if(game==='catch')tapCatch(catcher.x,catcher.y);
+    if(game==='drop'){let b=drop.ballsArr.find(z=>!z.done);if(b)tapDrop(b.x,b.y)}
+    if(game==='beat'&&!beat.showing){let i=beat.seq[beat.input.length];tapBeat(beat.pos[i][0],beat.pos[i][1])}
+   }
+ }
+});
+home.onclick=()=>showMenu();
+
+function loop(){
+ cancelAnimationFrame(raf);
+ function frame(){
+  if(scene==='menu'){ctx.clearRect(0,0,W,H);menuHitboxes=[];drawMenu()}
+  else if(scene==='finish')renderFinish();
+  else{
+   if(game==='burst')renderBurst();
+   if(game==='catch')renderCatch();
+   if(game==='beat')renderBeat();
+   if(game==='race')renderRace();
+   if(game==='drop')renderDrop();
+   updateFX();
+  }
+  raf=requestAnimationFrame(frame);
+ }
+ frame();
+}
+let renderFinish=()=>{};
+showMenu();
+})();
+</script>
+</body>
+</html>
