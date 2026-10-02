@@ -1,0 +1,580 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Sensory Play — Phoenix College</title>
+<style>
+  :root{
+    --bg-deep:#0d0a2b;
+    --bg-deep2:#1b1450;
+    --glow-a:#ffd166;
+    --glow-b:#ef476f;
+    --glow-c:#06d6a0;
+    --glow-d:#118ab2;
+    --glow-e:#a06cd5;
+    --panel:#14103a;
+    --text:#fdfcff;
+    --radius:34px;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color: transparent; user-select:none;}
+  html,body{
+    margin:0; padding:0; height:100%; width:100%;
+    overflow:hidden;
+    background:var(--bg-deep);
+    font-family: 'Segoe UI', Verdana, Arial, sans-serif;
+    color:var(--text);
+    touch-action: manipulation;
+  }
+  #app{position:fixed; inset:0; overflow:hidden;}
+  .screen{
+    position:absolute; inset:0;
+    display:none;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    overflow:hidden;
+  }
+  .screen.active{display:flex;}
+
+  /* ---------- top bar controls (always visible, huge, forgiving) ---------- */
+  #topbar{
+    position:fixed; top:0; left:0; right:0;
+    display:flex; justify-content:space-between; align-items:flex-start;
+    padding:18px; z-index:500; pointer-events:none;
+  }
+  #topbar > *{pointer-events:auto;}
+  .round-btn{
+    width:74px; height:74px; border-radius:50%;
+    border:none; font-size:34px; cursor:pointer;
+    background:rgba(255,255,255,0.14);
+    backdrop-filter: blur(6px);
+    color:var(--text);
+    display:flex; align-items:center; justify-content:center;
+    box-shadow:0 4px 18px rgba(0,0,0,0.35);
+    transition: transform .15s ease;
+  }
+  .round-btn:active{transform:scale(0.88);}
+  #homeBtn{display:none;}
+  .screen.active ~ #topbar #homeBtn, .on-activity #homeBtn{display:flex;}
+  #teacherBtn{
+    width:46px;height:46px;font-size:20px;opacity:0.35;
+  }
+  #teacherBtn:active{opacity:0.9;}
+
+  /* ---------- HOME ---------- */
+  #home{
+    background: radial-gradient(circle at 50% 20%, var(--bg-deep2), var(--bg-deep) 70%);
+  }
+  #homeTitle{
+    font-size:clamp(28px,5vw,44px);
+    font-weight:800;
+    text-align:center;
+    margin:0 0 6px 0;
+    letter-spacing:0.5px;
+  }
+  #homeSub{
+    font-size:clamp(16px,2.4vw,20px);
+    opacity:0.75;
+    margin:0 0 34px 0;
+    text-align:center;
+  }
+  #tiles{
+    display:grid;
+    grid-template-columns:repeat(2, minmax(150px,240px));
+    gap:26px;
+    z-index:5;
+  }
+  .tile{
+    width:100%;
+    aspect-ratio:1/1;
+    border-radius:40px;
+    border:none;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    gap:10px;
+    cursor:pointer;
+    font-size:20px;
+    font-weight:700;
+    color:#1a1230;
+    box-shadow:0 10px 0 rgba(0,0,0,0.25), 0 14px 30px rgba(0,0,0,0.35);
+    transition: transform .12s ease;
+    animation: floatSlow 6s ease-in-out infinite;
+  }
+  .tile:active{transform:translateY(6px) scale(0.97); box-shadow:0 4px 0 rgba(0,0,0,0.25);}
+  .tile .emoji{font-size:56px; line-height:1;}
+  .tile.t1{background:var(--glow-a); animation-delay:0s;}
+  .tile.t2{background:var(--glow-c); animation-delay:.6s;}
+  .tile.t3{background:var(--glow-d); color:#fff; animation-delay:1.2s;}
+  .tile.t4{background:var(--glow-b); color:#fff; animation-delay:1.8s;}
+  @keyframes floatSlow{
+    0%,100%{transform:translateY(0);}
+    50%{transform:translateY(-10px);}
+  }
+
+  /* gentle floating background blobs on home to catch the eye passively */
+  .bgblob{
+    position:absolute; border-radius:50%; filter:blur(2px);
+    opacity:0.5; pointer-events:none;
+  }
+
+  /* attract-mode pulse ring shown after inactivity */
+  #attract{
+    position:absolute; inset:0; display:none;
+    align-items:center; justify-content:center;
+    pointer-events:none; z-index:2;
+  }
+  #attract.show{display:flex;}
+  .pulseRing{
+    position:absolute; width:120px; height:120px; border-radius:50%;
+    border:6px solid rgba(255,255,255,0.55);
+    animation: pulseOut 2.4s ease-out infinite;
+  }
+  .pulseRing.r2{animation-delay:0.8s;}
+  .pulseRing.r3{animation-delay:1.6s;}
+  @keyframes pulseOut{
+    0%{transform:scale(0.3); opacity:0.9;}
+    100%{transform:scale(4.2); opacity:0;}
+  }
+
+  /* ---------- BUBBLES ---------- */
+  #bubbles{ background: linear-gradient(180deg,#0b3d91,#1e88e5 60%,#5fd3f3); }
+  .bubble{
+    position:absolute; bottom:-140px; border-radius:50%;
+    background: radial-gradient(circle at 32% 28%, rgba(255,255,255,0.95), rgba(255,255,255,0.15) 55%, rgba(255,255,255,0.05) 100%);
+    box-shadow: inset 0 0 18px rgba(255,255,255,0.4), 0 0 20px rgba(255,255,255,0.25);
+    cursor:pointer;
+  }
+
+  /* ---------- RIPPLE ---------- */
+  #ripple{ background: linear-gradient(160deg,#3a0ca3,#7209b7 45%,#f72585); }
+  .ripple-circle{
+    position:absolute; border-radius:50%;
+    border:8px solid rgba(255,255,255,0.85);
+    pointer-events:none;
+    transform:translate(-50%,-50%);
+    animation: rippleOut 1.4s ease-out forwards;
+  }
+  @keyframes rippleOut{
+    0%{width:0; height:0; opacity:1;}
+    100%{width:520px; height:520px; opacity:0;}
+  }
+  #rippleHint{position:absolute; bottom:40px; font-size:18px; opacity:0.7; text-align:center; padding:0 20px;}
+
+  /* ---------- ORB ---------- */
+  #orb-screen{ background: radial-gradient(circle at 50% 45%, #1a1a3d, #05050f 75%); }
+  #orb{
+    width:220px; height:220px; border-radius:50%;
+    background: radial-gradient(circle at 35% 30%, #fff, var(--glow-e) 45%, #4a1e8f 100%);
+    box-shadow: 0 0 60px 20px var(--glow-e), 0 0 120px 40px rgba(160,108,213,0.35);
+    cursor:pointer;
+    animation: breathe 3.2s ease-in-out infinite;
+  }
+  @keyframes breathe{
+    0%,100%{transform:scale(1);}
+    50%{transform:scale(1.12);}
+  }
+  .sparkle{
+    position:absolute; border-radius:50%; pointer-events:none;
+  }
+
+  /* ---------- SKY / FIREWORKS ---------- */
+  #sky{ background: radial-gradient(ellipse at 50% 100%, #061029, #01030d 70%); }
+  .star{position:absolute; background:#fff; border-radius:50%; animation: twinkle 2.4s ease-in-out infinite;}
+  @keyframes twinkle{0%,100%{opacity:0.25;} 50%{opacity:1;}}
+  .spark{position:absolute; border-radius:50%; pointer-events:none;}
+  #skyHint{position:absolute; bottom:40px; font-size:18px; opacity:0.7; text-align:center; padding:0 20px;}
+
+  /* particle burst (shared) */
+  .particle{position:absolute; border-radius:50%; pointer-events:none;}
+
+  /* ---------- mute button state ---------- */
+  #muteBtn.muted{opacity:0.45;}
+
+  /* ---------- teacher report modal ---------- */
+  #reportOverlay{
+    position:fixed; inset:0; background:rgba(5,5,15,0.85);
+    display:none; align-items:center; justify-content:center; z-index:1000;
+    padding:20px;
+  }
+  #reportOverlay.show{display:flex;}
+  #reportCard{
+    background:var(--panel); border-radius:26px; padding:28px;
+    width:min(560px,92vw); max-height:88vh; overflow:auto;
+    box-shadow:0 20px 60px rgba(0,0,0,0.5);
+  }
+  #reportCard h2{margin-top:0; font-size:22px;}
+  #reportCard table{width:100%; border-collapse:collapse; margin:14px 0; font-size:15px;}
+  #reportCard td, #reportCard th{padding:8px 6px; border-bottom:1px solid rgba(255,255,255,0.12); text-align:left;}
+  #reportCard .row{display:flex; gap:12px; margin-top:18px; flex-wrap:wrap;}
+  #reportCard button{
+    flex:1; min-width:140px; padding:14px; border-radius:14px; border:none;
+    font-size:15px; font-weight:700; cursor:pointer;
+  }
+  #printBtn{background:var(--glow-c); color:#053b2e;}
+  #closeReportBtn{background:rgba(255,255,255,0.15); color:#fff;}
+  #tip{font-size:13px; opacity:0.7; margin-top:14px; line-height:1.5;}
+
+  @media print{
+    body *{visibility:hidden;}
+    #reportCard, #reportCard *{visibility:visible;}
+    #reportCard{position:absolute; top:0; left:0; width:100%; box-shadow:none; background:#fff; color:#111;}
+    #reportCard td, #reportCard th{border-bottom:1px solid #ccc;}
+    #reportCard .row{display:none;}
+  }
+
+  @media (max-width:420px){
+    #tiles{grid-template-columns:repeat(2, minmax(120px,1fr)); gap:16px;}
+    .tile .emoji{font-size:42px;}
+    #orb{width:170px; height:170px;}
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    .tile, .pulseRing, #orb, .star{animation:none !important;}
+  }
+</style>
+</head>
+<body>
+
+<div id="app">
+
+  <!-- HOME -->
+  <div class="screen active" id="home">
+    <div id="attract"><div class="pulseRing"></div><div class="pulseRing r2"></div><div class="pulseRing r3"></div></div>
+    <h1 id="homeTitle">✨ Sensory Play ✨</h1>
+    <p id="homeSub">Touch a picture to begin</p>
+    <div id="tiles">
+      <button class="tile t1" data-target="bubbles" aria-label="Bubbles"><span class="emoji">🫧</span>Bubbles</button>
+      <button class="tile t2" data-target="ripple" aria-label="Colour Waves"><span class="emoji">🌈</span>Colour Waves</button>
+      <button class="tile t3" data-target="orb-screen" aria-label="Glow Ball"><span class="emoji">🔮</span>Glow Ball</button>
+      <button class="tile t4" data-target="sky" aria-label="Star Sky"><span class="emoji">🌟</span>Star Sky</button>
+    </div>
+  </div>
+
+  <!-- BUBBLES -->
+  <div class="screen" id="bubbles"></div>
+
+  <!-- RIPPLE -->
+  <div class="screen" id="ripple">
+    <div id="rippleHint">Touch anywhere 🖐️</div>
+  </div>
+
+  <!-- ORB -->
+  <div class="screen" id="orb-screen">
+    <div id="orb"></div>
+  </div>
+
+  <!-- SKY -->
+  <div class="screen" id="sky">
+    <div id="skyHint">Touch anywhere ✨</div>
+  </div>
+
+</div>
+
+<!-- top bar -->
+<div id="topbar">
+  <button id="homeBtn" class="round-btn" aria-label="Home">🏠</button>
+  <div style="display:flex; gap:10px; align-items:flex-start;">
+    <button id="muteBtn" class="round-btn" aria-label="Sound">🔊</button>
+    <button id="teacherBtn" class="round-btn" aria-label="Staff report">⚙️</button>
+  </div>
+</div>
+
+<!-- teacher / staff report -->
+<div id="reportOverlay">
+  <div id="reportCard">
+    <h2>Session Record</h2>
+    <p id="repMeta" style="opacity:0.8; margin:0 0 6px 0;"></p>
+    <table>
+      <thead><tr><th>Activity</th><th>Time spent</th><th>Touches</th></tr></thead>
+      <tbody id="repBody"></tbody>
+    </table>
+    <p id="repTotal" style="font-weight:700;"></p>
+    <div class="row">
+      <button id="printBtn">🖨️ Print / Save as PDF</button>
+      <button id="closeReportBtn">Close</button>
+    </div>
+    <p id="tip">Tip: you can also use your device's screenshot function at any point to save what's on screen. This report is for staff only — students won't usually find this button.</p>
+  </div>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  /* ================= AUDIO (gentle synthesized chimes, no files needed) ================= */
+  let audioCtx = null;
+  let muted = false;
+  function ctx(){
+    if(!audioCtx){ audioCtx = new (window.AudioContext||window.webkitAudioContext)(); }
+    return audioCtx;
+  }
+  const notes = [261.63,293.66,329.63,392.00,440.00,523.25]; // pentatonic-ish, calm
+  function chime(freqOverride){
+    if(muted) return;
+    try{
+      const ac = ctx();
+      const freq = freqOverride || notes[Math.floor(Math.random()*notes.length)];
+      const osc = ac.createOscillator();
+      const gain = ac.createGain();
+      osc.type = 'sine';
+      osc.frequency.value = freq;
+      gain.gain.setValueAtTime(0, ac.currentTime);
+      gain.gain.linearRampToValueAtTime(0.22, ac.currentTime + 0.03);
+      gain.gain.exponentialRampToValueAtTime(0.0001, ac.currentTime + 0.9);
+      osc.connect(gain).connect(ac.destination);
+      osc.start();
+      osc.stop(ac.currentTime + 0.95);
+    }catch(e){}
+  }
+
+  const muteBtn = document.getElementById('muteBtn');
+  muteBtn.addEventListener('click', ()=>{
+    muted = !muted;
+    muteBtn.textContent = muted ? '🔇' : '🔊';
+    muteBtn.classList.toggle('muted', muted);
+  });
+
+  /* ================= SCREEN NAVIGATION ================= */
+  const screens = document.querySelectorAll('.screen');
+  const homeBtn = document.getElementById('homeBtn');
+  let currentId = 'home';
+  let idleTimer = null;
+  let idleShown = false;
+
+  const sessionLog = {}; // activity -> {ms, touches}
+  let enterTime = Date.now();
+  const sessionStart = Date.now();
+
+  function logExitCurrent(){
+    const spent = Date.now() - enterTime;
+    if(!sessionLog[currentId]) sessionLog[currentId] = {ms:0, touches:0};
+    sessionLog[currentId].ms += spent;
+  }
+
+  function bumpTouch(id){
+    if(!sessionLog[id]) sessionLog[id] = {ms:0, touches:0};
+    sessionLog[id].touches += 1;
+  }
+
+  function showScreen(id){
+    logExitCurrent();
+    screens.forEach(s=> s.classList.toggle('active', s.id===id));
+    currentId = id;
+    enterTime = Date.now();
+    document.body.classList.toggle('on-activity', id!=='home');
+    resetIdle();
+    if(id==='bubbles') startBubbles(); else stopBubbles();
+    if(id==='sky') ensureStars(); 
+  }
+
+  document.querySelectorAll('.tile').forEach(t=>{
+    t.addEventListener('click', ()=>{
+      chime();
+      showScreen(t.dataset.target);
+    });
+  });
+  homeBtn.addEventListener('click', ()=>{ chime(); showScreen('home'); });
+
+  /* ================= IDLE / ATTRACT MODE (home screen) ================= */
+  const attract = document.getElementById('attract');
+  function resetIdle(){
+    idleShown = false;
+    attract.classList.remove('show');
+    clearTimeout(idleTimer);
+    if(currentId==='home'){
+      idleTimer = setTimeout(triggerAttract, 14000);
+    }
+  }
+  function triggerAttract(){
+    if(currentId!=='home') return;
+    attract.classList.add('show');
+    chime(392.00);
+    idleTimer = setTimeout(()=>{ attract.classList.remove('show'); resetIdle(); }, 3000);
+  }
+  document.addEventListener('pointerdown', resetIdle, {passive:true});
+  resetIdle();
+
+  /* ================= floating background blobs on home ================= */
+  const home = document.getElementById('home');
+  const blobColors = ['var(--glow-a)','var(--glow-b)','var(--glow-c)','var(--glow-d)','var(--glow-e)'];
+  for(let i=0;i<6;i++){
+    const b = document.createElement('div');
+    b.className='bgblob';
+    const size = 60+Math.random()*120;
+    b.style.width=size+'px'; b.style.height=size+'px';
+    b.style.left=(Math.random()*90)+'%';
+    b.style.top=(Math.random()*80)+'%';
+    b.style.background = blobColors[i%blobColors.length];
+    b.style.animation = `floatSlow ${6+Math.random()*4}s ease-in-out infinite`;
+    b.style.animationDelay = (Math.random()*4)+'s';
+    home.appendChild(b);
+  }
+
+  /* ================= generic particle burst ================= */
+  function burst(container, x, y, count, colors){
+    for(let i=0;i<count;i++){
+      const p = document.createElement('div');
+      p.className='particle';
+      const size = 6+Math.random()*10;
+      p.style.width=size+'px'; p.style.height=size+'px';
+      p.style.left=x+'px'; p.style.top=y+'px';
+      p.style.background = colors[Math.floor(Math.random()*colors.length)];
+      p.style.boxShadow = '0 0 10px '+p.style.background;
+      const angle = Math.random()*Math.PI*2;
+      const dist = 60+Math.random()*140;
+      const dx = Math.cos(angle)*dist;
+      const dy = Math.sin(angle)*dist;
+      p.animate([
+        {transform:'translate(0,0) scale(1)', opacity:1},
+        {transform:`translate(${dx}px, ${dy}px) scale(0.2)`, opacity:0}
+      ], {duration: 700+Math.random()*400, easing:'ease-out'});
+      container.appendChild(p);
+      setTimeout(()=>p.remove(), 1200);
+    }
+  }
+
+  /* ================= BUBBLES ================= */
+  const bubblesScreen = document.getElementById('bubbles');
+  let bubbleInterval = null;
+  const bubbleColors = ['#ffd166','#ef476f','#06d6a0','#118ab2','#a06cd5','#ffffff'];
+  function spawnBubble(){
+    const b = document.createElement('div');
+    b.className='bubble';
+    const size = 70+Math.random()*90;
+    b.style.width=size+'px'; b.style.height=size+'px';
+    b.style.left = (Math.random()*85)+'%';
+    bubblesScreen.appendChild(b);
+    const duration = 6000+Math.random()*4000;
+    const anim = b.animate([
+      {transform:'translateY(0) translateX(0)'},
+      {transform:`translateY(-${window.innerHeight+200}px) translateX(${(Math.random()*80-40)}px)`}
+    ], {duration, easing:'linear'});
+    anim.onfinish = ()=> b.remove();
+    function pop(e){
+      e.stopPropagation();
+      const rect = b.getBoundingClientRect();
+      burst(bubblesScreen, rect.left+rect.width/2, rect.top+rect.height/2, 14, bubbleColors);
+      chime();
+      bumpTouch('bubbles');
+      anim.cancel();
+      b.remove();
+    }
+    b.addEventListener('pointerdown', pop);
+  }
+  function startBubbles(){
+    stopBubbles();
+    spawnBubble();
+    bubbleInterval = setInterval(spawnBubble, 1400);
+  }
+  function stopBubbles(){
+    clearInterval(bubbleInterval);
+    bubbleInterval = null;
+  }
+
+  /* ================= RIPPLE ================= */
+  const rippleScreen = document.getElementById('ripple');
+  const rippleColors = ['#ffffff','#ffd166','#06d6a0','#ffc6ff','#a0e7e5'];
+  rippleScreen.addEventListener('pointerdown', (e)=>{
+    document.getElementById('rippleHint').style.display='none';
+    const rect = rippleScreen.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    const c = document.createElement('div');
+    c.className='ripple-circle';
+    c.style.left=x+'px'; c.style.top=y+'px';
+    c.style.borderColor = rippleColors[Math.floor(Math.random()*rippleColors.length)];
+    rippleScreen.appendChild(c);
+    setTimeout(()=>c.remove(), 1500);
+    chime();
+    bumpTouch('ripple');
+  });
+
+  /* ================= ORB ================= */
+  const orb = document.getElementById('orb');
+  const orbScreen = document.getElementById('orb-screen');
+  const orbColors = ['#a06cd5','#ef476f','#06d6a0','#118ab2','#ffd166','#f72585'];
+  orb.addEventListener('pointerdown', (e)=>{
+    e.stopPropagation();
+    const c = orbColors[Math.floor(Math.random()*orbColors.length)];
+    orb.style.background = `radial-gradient(circle at 35% 30%, #fff, ${c} 45%, #2a0a55 100%)`;
+    orb.style.boxShadow = `0 0 60px 20px ${c}, 0 0 120px 40px ${c}55`;
+    const rect = orb.getBoundingClientRect();
+    burst(orbScreen, rect.left+rect.width/2, rect.top+rect.height/2, 18, orbColors);
+    chime();
+    bumpTouch('orb-screen');
+    orb.animate([{transform:'scale(1)'},{transform:'scale(1.25)'},{transform:'scale(1)'}], {duration:500});
+  });
+
+  /* ================= SKY / FIREWORKS ================= */
+  const skyScreen = document.getElementById('sky');
+  let starsMade = false;
+  function ensureStars(){
+    if(starsMade) return;
+    starsMade = true;
+    for(let i=0;i<50;i++){
+      const s = document.createElement('div');
+      s.className='star';
+      const size = 1+Math.random()*3;
+      s.style.width=size+'px'; s.style.height=size+'px';
+      s.style.left=(Math.random()*100)+'%';
+      s.style.top=(Math.random()*100)+'%';
+      s.style.animationDelay=(Math.random()*2.4)+'s';
+      skyScreen.appendChild(s);
+    }
+  }
+  const fireworkColors = ['#ff6b6b','#ffd166','#06d6a0','#4cc9f0','#f72585','#ffffff'];
+  skyScreen.addEventListener('pointerdown', (e)=>{
+    document.getElementById('skyHint').style.display='none';
+    const rect = skyScreen.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    burst(skyScreen, x, y, 24, fireworkColors);
+    chime();
+    bumpTouch('sky');
+  });
+
+  /* ================= TEACHER / STAFF REPORT ================= */
+  const teacherBtn = document.getElementById('teacherBtn');
+  const reportOverlay = document.getElementById('reportOverlay');
+  const repBody = document.getElementById('repBody');
+  const repTotal = document.getElementById('repTotal');
+  const repMeta = document.getElementById('repMeta');
+  const nameMap = {
+    home:'Home menu', bubbles:'Bubbles', ripple:'Colour Waves', 'orb-screen':'Glow Ball', sky:'Star Sky'
+  };
+
+  teacherBtn.addEventListener('click', ()=>{
+    logExitCurrent();
+    enterTime = Date.now(); // resume timing current screen after closing
+    repBody.innerHTML='';
+    let totalMs = Date.now() - sessionStart;
+    let totalTouches = 0;
+    Object.keys(nameMap).forEach(key=>{
+      const d = sessionLog[key] || {ms:0, touches:0};
+      totalTouches += d.touches;
+      const tr = document.createElement('tr');
+      tr.innerHTML = `<td>${nameMap[key]}</td><td>${Math.round(d.ms/1000)}s</td><td>${d.touches}</td>`;
+      repBody.appendChild(tr);
+    });
+    repMeta.textContent = 'Date: ' + new Date().toLocaleString();
+    repTotal.textContent = `Total session time: ${Math.round(totalMs/1000)}s  •  Total touches: ${totalTouches}`;
+    reportOverlay.classList.add('show');
+  });
+  document.getElementById('closeReportBtn').addEventListener('click', ()=>{
+    reportOverlay.classList.remove('show');
+  });
+  document.getElementById('printBtn').addEventListener('click', ()=> window.print());
+
+  /* unlock audio on first touch (mobile/tablet requirement) */
+  document.addEventListener('pointerdown', function unlock(){
+    try{ ctx().resume(); }catch(e){}
+    document.removeEventListener('pointerdown', unlock);
+  }, {once:true});
+
+})();
+</script>
+</body>
+</html>
